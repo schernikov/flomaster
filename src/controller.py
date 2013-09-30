@@ -57,7 +57,7 @@ class SensorControl(object):
                     if stopstamp == 0:
                         print "starting"
                     else:
-                        print "starting (idle for %%.3f seconds)" %(startstamp-stopstamp)
+                        print "starting (idle for %.3f seconds)" %(startstamp-stopstamp)
                 else:
                     diff = stamp - prevstamp
                     print "%.2f (%d)" % (ticksdiff/diff, ticks)

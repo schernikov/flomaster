@@ -21,9 +21,10 @@ class SensorControl(object):
 
         self._cond = threading.Condition()
         self._tickcount = 0
-        self._polltime = 0.1
+        self._polltime = 0.1 # seconds
         self._startstamp = 0
         self._stamp = 0
+        self._startgrace = 3 # seconds
 
     def loop(self):
         prevticks = 0
@@ -31,22 +32,26 @@ class SensorControl(object):
         polltime = None
         stopstamp = 0
         startstamp = 0
+        stopping = False
         while True:
             self._cond.acquire()
             res = self._cond.wait(polltime); res
             ticks = self._tickcount
             ticksdiff = ticks - prevticks            
             if ticksdiff == 0:  # nothing happened since last poll
-                # stopping
-                self._tickcount = 0 # setup tick event
-                stopstamp = self._stamp
+                now = time.time()
+                if (self._startstamp+self._startgrace) <= now:
+                    stopping = True
+                    self._tickcount = 0 # setup tick event
+                    stopstamp = self._stamp
             else:
                 if polltime is None: # starting
                     startstamp = self._startstamp
             stamp = self._stamp
             self._cond.release()
 
-            if ticksdiff == 0:
+            if stopping:
+                stopping = False
                 if polltime:
                     polltime = None
                     print "stopping (%d ticks in %.3f seconds)" %(ticks, stamp-startstamp)

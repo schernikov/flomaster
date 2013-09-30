@@ -24,7 +24,7 @@ class SensorControl(object):
         self._polltime = 0.1 # seconds
         self._startstamp = 0
         self._stamp = 0
-        self._startgrace = 1 # seconds
+        self._stopgrace = 1 # seconds
 
     def loop(self):
         prevticks = 0
@@ -42,10 +42,10 @@ class SensorControl(object):
             if ticksdiff == 0:  # nothing happened since last poll
                 now = time.time()
                 stopping = True
-                if (self._startstamp+self._startgrace) <= now:
+                stopstamp = self._stamp
+                if (stopstamp+self._stopgrace) <= now:
                     needstop = True
                     self._tickcount = 0 # setup tick event
-                    stopstamp = self._stamp
             else:
                 if polltime is None: # starting
                     startstamp = self._startstamp

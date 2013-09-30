@@ -24,7 +24,7 @@ class SensorControl(object):
         self._polltime = 0.1 # seconds
         self._startstamp = 0
         self._stamp = 0
-        self._startgrace = 3 # seconds
+        self._startgrace = 1 # seconds
 
     def loop(self):
         prevticks = 0
@@ -33,6 +33,7 @@ class SensorControl(object):
         stopstamp = 0
         startstamp = 0
         stopping = False
+        needstop = False
         while True:
             self._cond.acquire()
             res = self._cond.wait(polltime); res
@@ -40,8 +41,9 @@ class SensorControl(object):
             ticksdiff = ticks - prevticks            
             if ticksdiff == 0:  # nothing happened since last poll
                 now = time.time()
+                stopping = True
                 if (self._startstamp+self._startgrace) <= now:
-                    stopping = True
+                    needstop = True
                     self._tickcount = 0 # setup tick event
                     stopstamp = self._stamp
             else:
@@ -50,22 +52,25 @@ class SensorControl(object):
             stamp = self._stamp
             self._cond.release()
 
-            if stopping:
+            if needstop:
+                needstop = False
                 stopping = False
                 if polltime:
                     polltime = None
                     print "stopping (%d ticks in %.3f seconds)" %(ticks, stamp-startstamp)
                     ticks = 0
             else:
-                if polltime is None: 
+                if polltime is None:
+                    stopping = False 
                     polltime = self._polltime
                     if stopstamp == 0:
                         print "starting"
                     else:
                         print "starting (idle for %.3f seconds)" %(startstamp-stopstamp)
                 else:
-                    diff = stamp - prevstamp
-                    print "%.2f (%d)" % (ticksdiff/diff, ticks)
+                    if not stopping:
+                        diff = stamp - prevstamp
+                        print "%.2f (%d)" % (ticksdiff/diff, ticks)
             prevticks = ticks
             prevstamp = stamp
 

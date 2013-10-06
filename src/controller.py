@@ -49,6 +49,9 @@ class SensorControl(object):
             else:
                 if polltime is None: # starting
                     startstamp = self._startstamp
+                else:
+                    if stopping: stopping = False
+                    
             stamp = self._stamp
             self._cond.release()
 

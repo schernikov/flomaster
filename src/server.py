@@ -52,6 +52,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
+    parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
     args = parser.parse_args()
     misc.logger.info('listening on port %d'%(args.port))
 

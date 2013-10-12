@@ -7,18 +7,23 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 """
 
 import time, threading
-import RPIO
 import misc
+try:
+    import RPIO
+except:
+    RPIO = None
+    misc.logger.warning('RPIO is not available')
 
 class SensorControl(object):
     def __init__(self):
-        inputpins = [23]
-        for pin in inputpins:
-            RPIO.setup(pin, RPIO.IN)
-            def on_turn(pin, val): self.on_turn(pin, val)
-            RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', threaded_callback=True)
+        if RPIO:
+            inputpins = [23]
+            for pin in inputpins:
+                RPIO.setup(pin, RPIO.IN)
+                def on_turn(pin, val): self.on_turn(pin, val)
+                RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', threaded_callback=True)
             
-        RPIO.wait_for_interrupts(threaded=True)
+            RPIO.wait_for_interrupts(threaded=True)
 
         self._cond = threading.Condition()
         self._tickcount = 0

@@ -66,7 +66,7 @@ def main():
                                    (r'/js/(.*)$', tornado.web.StaticFileHandler, {"path": os.path.join(loc, 'js')}),
                                   ], debug=True, cookie_secret=str(uuid.uuid4()))
     
-    app.listen(args.port, address='localhost')
+    app.listen(args.port, address=args.host)
 
     sc = controller.SensorControl()
     def scont():

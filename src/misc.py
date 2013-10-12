@@ -9,7 +9,7 @@ import tornado
 
 logger = logging.getLogger('flomaster')
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%H:%M:%S')
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%H:%M:%S')
 
 class Base(object):
     def __init__(self, pref):

@@ -24,9 +24,25 @@ $(window).load(function(){
 			onclose(socket);
 		};
 	}
-
+	
+	var data = [0], totalPoints = 300;
+	
+	function oncounts(args) {
+		data = data.slice(1);
+		data.push(args.speed);
+		
+		update();
+	};
 	function onmessage(message) {
-		console.log("ws got: '"+message+"'");
+		if(!message){
+			console.log("ws: empty message?!");
+			return;
+		}
+		if(message.counts){
+			oncounts(message.counts);
+		} else {
+			console.log("ws got: '"+message+"'");
+		}
 	}
 	function onopen(s) {
 		console.log("opening ws");
@@ -36,63 +52,22 @@ $(window).load(function(){
 	}
 	openChannel('/websocket', onmessage, onopen, onclose);
 	
-	var data = [],
-		totalPoints = 300;
 
-	function getRandomData() {
-
-		if (data.length > 0)
-			data = data.slice(1);
-
-		// Do a random walk
-
-		while (data.length < totalPoints) {
-
-			var prev = data.length > 0 ? data[data.length - 1] : 50,
-				y = prev + Math.random() * 10 - 5;
-
-			if (y < 0) {
-				y = 0;
-			} else if (y > 100) {
-				y = 100;
-			}
-
-			data.push(y);
-		}
-
-		// Zip the generated y values with the x values
-
+	function getData() {
 		var res = [];
 		for (var i = 0; i < data.length; ++i) {
 			res.push([i, data[i]])
 		}
-
 		return res;
 	}
 
-	// Set up the control widget
-
-	var updateInterval = 30;
-	$("#updateInterval").val(updateInterval).change(function () {
-		var v = $(this).val();
-		if (v && !isNaN(+v)) {
-			updateInterval = +v;
-			if (updateInterval < 1) {
-				updateInterval = 1;
-			} else if (updateInterval > 2000) {
-				updateInterval = 2000;
-			}
-			$(this).val("" + updateInterval);
-		}
-	});
-
-	var plot = $.plot("#placeholder", [ getRandomData() ], {
+	var plot = $.plot("#placeholder", [ getData() ], {
 		series: {
 			shadowSize: 0	// Drawing is faster without shadows
 		},
 		yaxis: {
 			min: 0,
-			max: 100
+			max: 500
 		},
 		xaxis: {
 			show: false
@@ -100,13 +75,11 @@ $(window).load(function(){
 	});
 
 	function update() {
-
-		plot.setData([getRandomData()]);
+		plot.setData([getData()]);
 
 		// Since the axes don't change, we don't need to call plot.setupGrid()
 
 		plot.draw();
-		setTimeout(update, updateInterval);
 	}
 
 	update();

@@ -44,4 +44,4 @@ class Base(object):
             hdls.append((r"%s%s/(.*)"%(self.pref, st), tornado.web.StaticFileHandler, {"path": os.path.join(loc, st)}))
         return hdls
 
-base = Base('/data/')
+base = Base('/')

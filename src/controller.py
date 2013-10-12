@@ -8,6 +8,7 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 
 import time, threading
 import RPIO
+import misc
 
 class SensorControl(object):
     def __init__(self):
@@ -26,7 +27,7 @@ class SensorControl(object):
         self._stamp = 0
         self._stopgrace = 1 # seconds
 
-    def loop(self):
+    def loop(self, evs):
         prevticks = 0
         prevstamp = 0
         polltime = None
@@ -35,6 +36,9 @@ class SensorControl(object):
         stopping = False
         needstop = False
         while True:
+            #
+            # critical area
+            #
             self._cond.acquire()
             res = self._cond.wait(polltime); res
             ticks = self._tickcount
@@ -54,26 +58,35 @@ class SensorControl(object):
                     
             stamp = self._stamp
             self._cond.release()
-
+            # 
+            # end of critical area
+            #
             if needstop:
                 needstop = False
                 stopping = False
                 if polltime:
                     polltime = None
-                    print "stopping (%d ticks in %.3f seconds)" %(ticks, stamp-startstamp)
+                    diff = stamp-startstamp
+                    misc.logger.info("stopping (%d ticks in %.3f seconds)" %(ticks, diff))
+                    evs.write(stop={'ticks':ticks, 'duration':diff})
                     ticks = 0
             else:
                 if polltime is None:
                     stopping = False 
                     polltime = self._polltime
                     if stopstamp == 0:
-                        print "starting"
+                        misc.logger.info("starting")
+                        evs.write(start={})
                     else:
-                        print "starting (idle for %.3f seconds)" %(startstamp-stopstamp)
+                        idle = startstamp-stopstamp
+                        misc.logger.info("starting (idle for %.3f seconds)" %(idle))
+                        evs.write(start={'idle':idle})
                 else:
                     if not stopping:
                         diff = stamp - prevstamp
-                        print "%.2f (%d)" % (ticksdiff/diff, ticks)
+                        speed = ticksdiff/diff
+                        misc.logger.info("%.2f (%d)" % (speed, ticks))
+                        evs.write(counts={'speed':speed, 'ticks':ticks})
             prevticks = ticks
             prevstamp = stamp
 

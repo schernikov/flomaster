@@ -8,6 +8,7 @@ $(window).load(function(){
 		window: 30, // seconds
 		tick: 50, // milliseconds
 		
+		started: false,
 		oninit: function(stamp) {
 			var self = this;
 			self.init = true;
@@ -22,20 +23,23 @@ $(window).load(function(){
 				self.onpoll();
 			}, self.tick);
 		}, 
-		onpoll: function() {
+		onpoll: function(first) {
 			var self = this;
 			var now = new Date().getTime();
 			var cutoff = self.startstamp+(now-self.starttime)/1000-self.window;
 			var vals = getData(cutoff);
 			if(vals[vals.length-1][1] == 0){  			   // last value is 0
-				if(vals.length == 1){
+				if(vals.length == 1 && self.started){
 					clearInterval(self.poller);
+					self.started = false;
 				}
 				if(vals.length < 2 || vals[vals.length-2][1] != 0){
 					vals.push([self.window, 0]);		   // add one more point to draw horizontal line at 0
 				} else {
 					vals[vals.length-1][0] = self.window;  // always keep zero line end at window border
 				}
+			} else {
+				self.started = true;
 			}
 			plotter.show(vals);
 		},

@@ -28,8 +28,11 @@ $(window).load(function(){
 	var data = [0], totalPoints = 300;
 	
 	function oncounts(args) {
-		data = data.slice(1);
+		if(data.length > totalPoints){
+			data = data.slice(1);
+		}
 		data.push(args.speed);
+		console.log('speed:'+args.speed);
 		
 		update();
 	};
@@ -38,8 +41,9 @@ $(window).load(function(){
 			console.log("ws: empty message?!");
 			return;
 		}
-		if(message.counts){
-			oncounts(message.counts);
+		var msg = jQuery.parseJSON(message);
+		if(msg.counts){
+			oncounts(msg.counts);
 		} else {
 			console.log("ws got: '"+message+"'");
 		}
@@ -70,7 +74,9 @@ $(window).load(function(){
 			max: 500
 		},
 		xaxis: {
-			show: false
+			min: 0,
+			max: totalPoints,
+			//show: false
 		}
 	});
 

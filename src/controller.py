@@ -73,7 +73,7 @@ class SensorControl(object):
                     polltime = None
                     diff = stamp-startstamp
                     misc.logger.info("stopping (%d ticks in %.3f seconds)" %(ticks, diff))
-                    evs.write(stop={'ticks':ticks, 'duration':round(diff, 3)})
+                    evs.write(stop={'ticks':ticks, 'duration':round(diff, 3), 'stamp':stamp})
                     ticks = 0
             else:
                 if polltime is None:

@@ -54,7 +54,7 @@ def main():
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
     args = parser.parse_args()
-    misc.logger.info('listening on port %d'%(args.port))
+    misc.logger.info('listening on %s:%d'%(args.host, args.port))
 
     evs = SocketHandler.control
 

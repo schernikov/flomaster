@@ -1,6 +1,6 @@
 $(window).load(function(){
 
-	var data = [0], stamps = [0], offset = 0, tickscount = 0;
+	var data = [], stamps = [], offset = 0, tickscount = 0;
 	
 	var params = {
 		init: false,

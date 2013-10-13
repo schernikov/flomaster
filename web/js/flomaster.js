@@ -10,23 +10,35 @@ $(window).load(function(){
 		
 		oninit: function(stamp) {
 			var self = this;
+			self.init = true;
 			self.startstamp = stamp;
 			self.starttime = new Date().getTime();
 			offset = stamp;
-			self.init = setInterval(function() {
-				var now = new Date().getTime();
-				var cutoff = self.startstamp+(now-self.starttime)/1000-self.window;
-				var vals = getData(cutoff);
-				if(vals[vals.length-1][1] == 0){  			   // last value is 0
-					if(vals.length < 2 || vals[vals.length-2][1] != 0){
-						vals.push([self.window, 0]);		   // add one more point to draw horizontal line at 0
-					} else {
-						vals[vals.length-1][0] = self.window;  // always keep zero line end at window border
-					}
-				}
-				plotter.show(vals);
+			self.onstart();
+		},
+		onstart: function() {
+			var self = this;
+			self.poller = setInterval(function() {
+				self.onpoll();
 			}, self.tick);
-		}
+		}, 
+		onpoll: function() {
+			var self = this;
+			var now = new Date().getTime();
+			var cutoff = self.startstamp+(now-self.starttime)/1000-self.window;
+			var vals = getData(cutoff);
+			if(vals[vals.length-1][1] == 0){  			   // last value is 0
+				if(vals.length == 1){
+					clearInterval(self.poller);
+				}
+				if(vals.length < 2 || vals[vals.length-2][1] != 0){
+					vals.push([self.window, 0]);		   // add one more point to draw horizontal line at 0
+				} else {
+					vals[vals.length-1][0] = self.window;  // always keep zero line end at window border
+				}
+			}
+			plotter.show(vals);
+		},
 	};
 
 	var plotter = new Plotter(params);	
@@ -50,10 +62,12 @@ $(window).load(function(){
 			tickscount += msg.stop.ticks;
 			plotter.onstats(tickscount);
 		} else if(msg.start) {
+			onspeed(0, msg.start.stamp);
 			if(!params.init){
 				params.oninit(msg.start.stamp);
+			} else {
+				params.onstart();
 			}
-			onspeed(0, msg.start.stamp);
 		} else {
 			console.log("ws got: '"+message+"'");
 		}

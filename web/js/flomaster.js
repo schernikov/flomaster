@@ -1,40 +1,39 @@
 $(window).load(function(){
-	function openChannel(url, callback, onopen, onclose) {
-		console.log("Opening channel.");
-		var origin = window.location.hostname;
-		if (window.location.port != "") {
-			origin += ":" + window.location.port;
-		}
-		var pref = (window.location.protocol == 'http:') ? 'ws:' : 'wss:';
-		var wsurl = pref + "//" + origin + url;
-		var socket = new WebSocket(wsurl);
-		socket.onopen = function() {
-			console.log('Channel opened.');
-			onopen(socket);
-		};
-		socket.onmessage = function(evt) {
-			callback(evt.data);
-		};
-		socket.onerror = function(evt) {
-			console.log('Channel error.');
-			onclose(socket);
-		};
-		socket.onclose = function(evt) {
-			console.log('Channel closed.');
-			onclose(socket);
-		};
-	}
+
+	var data = [0], stamps = [0], offset = 0, tickscount = 0;
 	
-	var data = [0], totalPoints = 300;
-	
-	function oncounts(args) {
-		if(data.length > totalPoints){
-			data = data.slice(1);
-		}
-		data.push(args.speed);
-		console.log('speed:'+args.speed);
+	var params = {
+		init: false,
+		top: 300,
+		window: 30, // seconds
+		tick: 50, // milliseconds
 		
-		update();
+		oninit: function(stamp) {
+			var self = this;
+			self.startstamp = stamp;
+			self.starttime = new Date().getTime();
+			offset = stamp;
+			self.init = setInterval(function() {
+				var now = new Date().getTime();
+				var cutoff = self.startstamp+(now-self.starttime)/1000-self.window;
+				var vals = getData(cutoff);
+				if(vals[vals.length-1][1] == 0){  			   // last value is 0
+					if(vals.length < 2 || vals[vals.length-2][1] != 0){
+						vals.push([self.window, 0]);		   // add one more point to draw horizontal line at 0
+					} else {
+						vals[vals.length-1][0] = self.window;  // always keep zero line end at window border
+					}
+				}
+				plotter.show(vals);
+			}, self.tick);
+		}
+	};
+
+	var plotter = new Plotter(params);	
+	
+	function onspeed(speed, stamp) {
+		data.push(speed);
+		stamps.push(stamp);
 	};
 	function onmessage(message) {
 		if(!message){
@@ -43,50 +42,84 @@ $(window).load(function(){
 		}
 		var msg = jQuery.parseJSON(message);
 		if(msg.counts){
-			oncounts(msg.counts);
+			onspeed(msg.counts.speed, msg.counts.stamp);
+			plotter.onstats(tickscount+msg.counts.ticks);
+		} else if (msg.stop) {
+			onspeed(0, msg.stop.stamp);
+			console.log("stop: "+new Date().toString())
+			tickscount += msg.stop.ticks;
+			plotter.onstats(tickscount);
+		} else if(msg.start) {
+			if(!params.init){
+				params.oninit(msg.start.stamp);
+			}
+			onspeed(0, msg.start.stamp);
 		} else {
 			console.log("ws got: '"+message+"'");
 		}
 	}
+	
 	function onopen(s) {
-		console.log("opening ws");
+		console.log("opening ws "+new Date().toString());
 	}
 	function onclose(s) {
-		console.log("closing ws");
+		console.log("closing ws "+new Date().toString());
+		
 	}
-	openChannel('/websocket', onmessage, onopen, onclose);
+	flowtools.openChannel('/websocket', onmessage, onopen, onclose);
 	
-
-	function getData() {
+	function getData(cutoff) {
 		var res = [];
+		if(stamps.length > 1){
+			var last = stamps.length-1;
+			for (var i = 1; i < stamps.length; ++i) {
+				if(stamps[i] > cutoff){
+					last = i-1;
+					break;
+				}
+			}
+			if(last > 0){
+				data = data.slice(last);
+				stamps = stamps.slice(last);
+			}
+		}
 		for (var i = 0; i < data.length; ++i) {
-			res.push([i, data[i]])
+			res.push([(stamps[i]-cutoff), data[i]])
 		}
 		return res;
 	}
+});
 
-	var plot = $.plot("#placeholder", [ getData() ], {
+function Plotter(params) {
+	var self = this;
+	var place = $('#placeholder');
+	
+	var plot = $.plot(place, [ [[0, 0]] ], {
 		series: {
 			shadowSize: 0	// Drawing is faster without shadows
 		},
 		yaxis: {
 			min: 0,
-			max: 500
+			max: params.top,
 		},
 		xaxis: {
 			min: 0,
-			max: totalPoints,
+			max: params.window,
 			//show: false
 		}
 	});
 
-	function update() {
-		plot.setData([getData()]);
+	self.show = function(vals) {
+		plot.setData([vals]);
 
 		// Since the axes don't change, we don't need to call plot.setupGrid()
 
 		plot.draw();
+	};
+	var stats = $('<div>').addClass('flostats'); 
+	place.append(stats);
+	self.onstats = function(count) {
+		stats.empty();
+		stats.append(count);
 	}
-
-	update();
-});
+}

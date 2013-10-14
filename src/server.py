@@ -33,10 +33,11 @@ class DevControl(object):
     def flow(self, **kargs):
         self.broadcast({'type':'flow', 'cont':kargs})
 
-    def broadcast(self, kargs):
+    def broadcast(self, dd, skip=None):
         self.lock.acquire()
         for sock in self.sockset:
-            sock.write_message(kargs)
+            if sock == skip: continue
+            sock.write_message(dd)
         self.lock.release()
 
 def convert(mod):
@@ -77,8 +78,12 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def sendsession(self, msg):
         self.write_message({'type':'session', 'cont':msg})
         
-    def sendevent(self, msg):
-        self.write_message({'type':'event', 'cont':msg})
+    def sendevent(self, msg, broadcast=False):
+        res = {'type':'event', 'cont':msg}
+        if broadcast:
+            self.control.broadcast(res, skip=self)
+        else:
+            self.write_message(res)
 
     def onevent(self, msg):
         relay = msg.get('relay', None)
@@ -91,6 +96,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         idx = relay-1
         try:
             self.control.device.set(idx, state=='on')
+            self.sendevent({'update':{'relay':relay, 'state':state}}, broadcast=True)
         except Exception, e:
             misc.logger.info("failed to set relay: %s"%(str(e)))
 

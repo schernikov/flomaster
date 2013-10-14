@@ -1,6 +1,7 @@
 $(window).load(function(){
 
 	var btnsgrp = $("#flobtns");
+	var relayswitches = [];
 	function btnmaker(idx) {
 		var btn = $("<button>").addClass("btn btn-primary");
 		btn.append(idx);
@@ -12,10 +13,6 @@ $(window).load(function(){
 			}
 		});
 		return btn;
-	}
-	for ( var i = 0; i < 4; i++) {
-		var btn = btnmaker(i+1);
-		btnsgrp.append(btn);
 	}
 	
 	var data = [], stamps = [], offset = 0, tickscount = 0;
@@ -92,7 +89,20 @@ $(window).load(function(){
 						}
 					},
 			'event':function(msg){
-						console.log(msg);
+						if(msg.init){
+							if(!msg.init.relays || !msg.init.relays.length){
+								console.log("event: no initial relays info");
+							} else {
+								for ( var i = 0; i < msg.init.relays; i++) {
+									var btn = btnmaker(i+1);
+									relayswitches.push(btn);
+									btnsgrp.append(btn);
+									if(msg.init.relays[i] == 'on') btn.addClass('active');
+								}
+							}
+						} else {
+							console.log("event got: '"+msg.toString()+"'");
+						}
 					}
 			}
 	);

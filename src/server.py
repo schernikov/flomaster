@@ -54,7 +54,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         self.control.onsock(self)
         self.sendsession({'init':convert(configs.client)})
         status = self.control.device.status()
-        self.sendevent(status)
+        self.sendevent({'init':status})
         
     def on_message(self, message):
         msg = json.loads(message)

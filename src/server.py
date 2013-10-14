@@ -66,7 +66,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         elif tp == 'event':
             cont = msg.get('cont', None)
             if cont:
-                misc.logger.info("event: "+cont)
+                self.onevent(cont)
         else:
             misc.logger.info("ws: "+message)
         
@@ -79,6 +79,20 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         
     def sendevent(self, msg):
         self.write_message({'type':'event', 'cont':msg})
+
+    def onevent(self, msg):
+        relay = msg.get('relay', None)
+        state = msg.get('state', None)
+        if relay is None or state is None:
+            misc.logger.info("unexpected event: %s"%(str(msg)))
+            return
+        if isinstance(state, basestring):
+            state = state.lower().strip()
+        idx = relay-1
+        try:
+            self.control.device.set(idx, state=='on')
+        except Exception, e:
+            misc.logger.info("failed to set relay: %s"%(str(e)))
 
 def main():
     parser = argparse.ArgumentParser()

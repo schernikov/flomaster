@@ -41,6 +41,11 @@ class SensorControl(object):
     def outpins(self):
         return (4, 17, 27, 22)
 
+    def set(self, idx, isOn):
+        if idx < 0 or idx >= len(self.outpins):
+            raise Exception("invalid relay switched: %s"%(str(idx)))
+        RPIO.output(self.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
+
     def status(self):
         outs = []; ins = []
         for pin in self.outpins:

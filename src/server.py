@@ -14,8 +14,9 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write({"msg":"Hello, world"})
 
-class SocketControl(object):
+class DevControl(object):
     def __init__(self):
+        self.device = None
         self.sockset = set()
         self.lock = threading.RLock()
         
@@ -46,12 +47,14 @@ def convert(mod):
     return d
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
-    control = SocketControl()
+    control = DevControl()
 
     def open(self):
         misc.logger.info("new socket"+str(self))
         self.control.onsock(self)
         self.sendsession({'init':convert(configs.client)})
+        status = self.control.device.status()
+        self.sendevent(status)
         
     def on_message(self, message):
         msg = json.loads(message)
@@ -60,8 +63,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             cont = msg.get('cont', None)
             if cont == 'ping':
                 self.sendsession('pong')
-        elif tp == 'even':
-            pass
+        elif tp == 'event':
+            cont = msg.get('cont', None)
+            if cont:
+                misc.logger.info("event: "+cont)
         else:
             misc.logger.info("ws: "+message)
         
@@ -71,6 +76,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         
     def sendsession(self, msg):
         self.write_message({'type':'session', 'cont':msg})
+        
+    def sendevent(self, msg):
+        self.write_message({'type':'event', 'cont':msg})
 
 def main():
     parser = argparse.ArgumentParser()
@@ -91,9 +99,9 @@ def main():
     
     app.listen(args.port, address=args.host)
 
-    sc = controller.SensorControl()
+    evs.device = controller.SensorControl()
     def scont():
-        sc.loop(evs)
+        evs.device.loop(evs)
     th = threading.Thread(target=scont, name='SensorController')
     th.daemon = True
     th.start()

@@ -17,13 +17,14 @@ except:
 class SensorControl(object):
     def __init__(self):
         if RPIO:
-            inputpins = [23]
-            for pin in inputpins:
+            for pin in self.inpins:
                 RPIO.setup(pin, RPIO.IN)
                 def on_turn(pin, val): self.on_turn(pin, val)
                 RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', threaded_callback=True)
             
             RPIO.wait_for_interrupts(threaded=True)
+            for pin in self.outpins:
+                RPIO.setup(pin, RPIO.OUT, initial=RPIO.HIGH)
 
         self._cond = threading.Condition()
         self._tickcount = 0
@@ -31,6 +32,22 @@ class SensorControl(object):
         self._startstamp = 0
         self._stamp = 0
         self._stopgrace = 1 # seconds
+
+    @property
+    def inpins(self):
+        return (23,)
+
+    @property
+    def outpins(self):
+        return (4, 17, 27, 22)
+
+    def status(self):
+        outs = []; ins = []
+        for pin in self.outpins:
+            outs.append(RPIO.input(pin) and 'off' or 'on')
+        for pin in self.inpins:
+            ins.append(RPIO.input(pin) and 'off' or 'on')
+        return {'relays':outs, 'sensors':ins}
 
     def loop(self, evs):
         prevticks = 0

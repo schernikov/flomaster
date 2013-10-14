@@ -146,14 +146,18 @@ flowtools = {
 			socket = null;
 			session.onclose();
 		}
-		self.sendmsg = function (message) {
+		function send(message) {
 			if (!socket) return;
 			var msgString = JSON.stringify(message);
 			console.log(new Date().toString()+': '+msgString);
 			socket.send(msgString);
 		}
+		
+		self.sendmsg = function (message) {
+			send({'type':'event', 'cont':message});
+		}
 		session = new flowtools.SessionControl(function(msg) {
-			self.sendmsg(msg);
+			send({'type':'session', 'cont':msg});
 		}, function() {
 			flowtools.openChannel(wsurl, onmessage, onopen, onclose);
 		}, function() {

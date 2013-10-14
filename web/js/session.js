@@ -149,12 +149,13 @@ flowtools = {
 		self.sendmsg = function (message) {
 			if (!socket) return;
 			var msgString = JSON.stringify(message);
+			console.log(new Date().toString()+': '+msgString);
 			socket.send(msgString);
 		}
-		session = new self.SessionControl(function(msg) {
+		session = new flowtools.SessionControl(function(msg) {
 			self.sendmsg(msg);
 		}, function() {
-			self.openChannel(wsurl, onmessage, onopen, onclose);
+			flowtools.openChannel(wsurl, onmessage, onopen, onclose);
 		}, function() {
 			if(socket) socket.close();
 		});

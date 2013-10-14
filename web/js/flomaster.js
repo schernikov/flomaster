@@ -91,9 +91,10 @@ $(window).load(function(){
 							console.log("flow got: '"+msg.toString()+"'");
 						}
 					},
-			{'event':function(msg){
-				console.log(msg);
-			}}}
+			'event':function(msg){
+						console.log(msg);
+					}
+			}
 	);
 	
 	function getData(cutoff) {

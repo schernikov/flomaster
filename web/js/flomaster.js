@@ -34,6 +34,7 @@ $(window).load(function(){
 		},
 		onstart: function() {
 			var self = this;
+			if(self.poller) clearInterval(self.poller);
 			self.poller = setInterval(function() {
 				self.onpoll();
 			}, self.tick);
@@ -62,28 +63,27 @@ $(window).load(function(){
 
 	var plotter = new Plotter(params);	
 	
-	function onspeed(speed, stamp) {
+	function onspeed(speed, stamp, ticks) {
+		if(!params.init){
+			params.oninit(stamp);
+		}		
 		data.push(speed);
 		stamps.push(stamp);
+		plotter.onstats(ticks);
 	};
 
 	var connection = new flowtools.Connection('/websocket', 
 			{'flow':function(msg) {
 						if(msg.counts){
-							onspeed(msg.counts.speed, msg.counts.stamp);
-							plotter.onstats(tickscount+msg.counts.ticks);
+							onspeed(msg.counts.speed, msg.counts.stamp, tickscount+msg.counts.ticks);
 						} else if (msg.stop) {
-							onspeed(0, msg.stop.stamp);
-							console.log("stop: "+new Date().toString())
 							tickscount += msg.stop.ticks;
-							plotter.onstats(tickscount);
+							onspeed(0, msg.stop.stamp, tickscount);
+							console.log("stop: "+new Date().toString())
 						} else if(msg.start) {
-							onspeed(0, msg.start.stamp);
-							if(!params.init){
-								params.oninit(msg.start.stamp);
-							} else {
-								params.onstart();
-							}
+							stamp = msg.start.stamp;
+							onspeed(0, msg.start.stamp, tickscount);
+							params.onstart();
 						} else {
 							console.log("flow got: '"+msg.toString()+"'");
 						}
@@ -93,11 +93,28 @@ $(window).load(function(){
 							if(!msg.init.relays || !msg.init.relays.length){
 								console.log("event: no initial relays info");
 							} else {
+								relayswitches = [];
+								btnsgrp.empty();
 								for ( var i = 0; i < msg.init.relays.length; i++) {
 									var btn = btnmaker(i+1);
 									relayswitches.push(btn);
 									btnsgrp.append(btn);
 									if(msg.init.relays[i] == 'on') btn.addClass('active');
+								}
+							}
+						} else if(msg.update) {
+							if(!msg.update.relay || !msg.update.state){
+								console.log("event: bad update info: "+msg.update.toString());
+							} else {
+								var idx = msg.update.relay-1;
+								if(idx >= relayswitches.length || idx < 0){
+									console.log("event: invalid relay: "+msg.update.toString());
+								} else {
+									if(msg.update.state == 'on'){
+										relayswitches[idx].addClass('active');
+									} else {
+										relayswitches[idx].removeClass('active');
+									}
 								}
 							}
 						} else {

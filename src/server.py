@@ -4,9 +4,9 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, threading
+import os, uuid, argparse, threading, json
 import tornado.ioloop, tornado.web, tornado.websocket
-import misc, controller
+import misc, controller, configs.client
 
 loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web')))
 
@@ -28,12 +28,22 @@ class SocketControl(object):
         self.lock.acquire()
         self.sockset.discard(sock)
         self.lock.release()
-        
-    def write(self, **kargs):
+    
+    def flow(self, **kargs):
+        self.broadcast({'type':'flow', 'cont':kargs})
+
+    def broadcast(self, **kargs):
         self.lock.acquire()
         for sock in self.sockset:
             sock.write_message(kargs)
         self.lock.release()
+
+def convert(mod):
+    d = {}
+    for nm in dir(mod):
+        if nm.startswith('_'): continue
+        d[nm] = getattr(mod, nm)
+    return d
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
     control = SocketControl()
@@ -41,13 +51,26 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         misc.logger.info("new socket"+str(self))
         self.control.onsock(self)
+        self.sendsession({'init':convert(configs.client)})
         
     def on_message(self, message):
-        misc.logger.info("ws: "+message)
+        msg = json.loads(message)
+        tp = msg.get('type', None)
+        if tp == 'session':
+            cont = msg.get('cont', None)
+            if cont == 'ping':
+                self.sendsession('pong')
+        elif tp == 'even':
+            pass
+        else:
+            misc.logger.info("ws: "+message)
         
     def on_close(self):
         misc.logger.info("ws: closed")
         self.control.offsock(self)
+        
+    def sendsession(self, msg):
+        self.write_message({'type':'session', 'cont':msg})
 
 def main():
     parser = argparse.ArgumentParser()

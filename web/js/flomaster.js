@@ -1,5 +1,23 @@
 $(window).load(function(){
 
+	var btnsgrp = $("#flobtns");
+	function btnmaker(idx) {
+		var btn = $("<button>").addClass("btn btn-primary");
+		btn.append(idx);
+		btn.click(function() {
+			if(!btn.hasClass('active')){ /* inverse state here */
+				connection.sendmsg({'relay':idx, 'state':'on'});
+			} else {
+				connection.sendmsg({'relay':idx, 'state':'off'});
+			}
+		});
+		return btn;
+	}
+	for ( var i = 0; i < 4; i++) {
+		var btn = btnmaker(i+1);
+		btnsgrp.append(btn);
+	}
+	
 	var data = [], stamps = [], offset = 0, tickscount = 0;
 	
 	var params = {
@@ -51,40 +69,32 @@ $(window).load(function(){
 		data.push(speed);
 		stamps.push(stamp);
 	};
-	function onmessage(message) {
-		if(!message){
-			console.log("ws: empty message?!");
-			return;
-		}
-		var msg = jQuery.parseJSON(message);
-		if(msg.counts){
-			onspeed(msg.counts.speed, msg.counts.stamp);
-			plotter.onstats(tickscount+msg.counts.ticks);
-		} else if (msg.stop) {
-			onspeed(0, msg.stop.stamp);
-			console.log("stop: "+new Date().toString())
-			tickscount += msg.stop.ticks;
-			plotter.onstats(tickscount);
-		} else if(msg.start) {
-			onspeed(0, msg.start.stamp);
-			if(!params.init){
-				params.oninit(msg.start.stamp);
-			} else {
-				params.onstart();
-			}
-		} else {
-			console.log("ws got: '"+message+"'");
-		}
-	}
-	
-	function onopen(s) {
-		console.log("opening ws "+new Date().toString());
-	}
-	function onclose(s) {
-		console.log("closing ws "+new Date().toString());
-		
-	}
-	flowtools.openChannel('/websocket', onmessage, onopen, onclose);
+
+	var connection = new flowtools.Connection('/websocket', 
+			{'flow':function(msg) {
+						if(msg.counts){
+							onspeed(msg.counts.speed, msg.counts.stamp);
+							plotter.onstats(tickscount+msg.counts.ticks);
+						} else if (msg.stop) {
+							onspeed(0, msg.stop.stamp);
+							console.log("stop: "+new Date().toString())
+							tickscount += msg.stop.ticks;
+							plotter.onstats(tickscount);
+						} else if(msg.start) {
+							onspeed(0, msg.start.stamp);
+							if(!params.init){
+								params.oninit(msg.start.stamp);
+							} else {
+								params.onstart();
+							}
+						} else {
+							console.log("flow got: '"+msg.toString()+"'");
+						}
+					},
+			{'event':function(msg){
+				console.log(msg);
+			}}}
+	);
 	
 	function getData(cutoff) {
 		var res = [];

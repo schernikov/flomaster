@@ -1,11 +1,14 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>Flomaster</title>
         <script type="text/javascript" src="js/jquery.min.js"></script>
+        <script type="text/javascript" src="js/bootstrap.min.js"></script>
         <script type="text/javascript" src="js/flot/jquery.flot.min.js"></script>
         <script type="text/javascript" src="js/session.js"></script>
         <script type="text/javascript" src="js/flomaster.js"></script>
-        <link rel="stylesheet" href="ui/styles.css"/>
+        <link href="ui/styles.css" rel="stylesheet"/>
+        <link href="ui/bootstrap.min.css" rel="stylesheet" media="screen">
         <!-- link rel="shortcut icon" href="favicon.ico"/-->
         <meta name="http-equive" content="content-type: text/html; charset=UTF-8"/>
     </head>
@@ -16,10 +19,17 @@
 		<h2>Real-time updates</h2>
 	</div>
 
-	<div id="content">
-
-		<div class="demo-container">
-			<div id="placeholder" class="demo-placeholder"></div>
+	<div class="container">
+		<div class="row">
+			<div class="btn-toolbar pull-right">
+				<div id="flobtns" class="btn-group" data-toggle="buttons-checkbox">
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="demo-container">
+				<div id="placeholder" class="demo-placeholder"></div>
+			</div>
 		</div>
 	</div>
     </body>

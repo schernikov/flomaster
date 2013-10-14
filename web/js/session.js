@@ -119,4 +119,48 @@ flowtools = {
 			onclose(socket);
 		};
 	},
+	Connection: function(wsurl, msgmap) {
+		var self = this;
+		var socket = null, session = null;
+
+		msgmap['session'] = function(cont) {
+			session.onmessage(cont);
+		};
+		
+		function onmessage(message) {
+			if(!message){
+				console.log("ws: empty message?!");
+				return;
+			}
+			var msg = jQuery.parseJSON(message);
+			if(msg.type && msgmap[msg.type]){
+				msgmap[msg.type](msg.cont);
+			} else {
+				console.log("ws got: '"+message+"'");
+			}
+		}
+		function onopen(s) {
+			socket = s;
+		}
+		function onclose(s) {
+			socket = null;
+			session.onclose();
+		}
+		self.sendmsg = function (message) {
+			if (!socket) return;
+			var msgString = JSON.stringify(message);
+			socket.send(msgString);
+		}
+		session = new self.SessionControl(function(msg) {
+			self.sendmsg(msg);
+		}, function() {
+			self.openChannel(wsurl, onmessage, onopen, onclose);
+		}, function() {
+			if(socket) socket.close();
+		});
+		
+		window.onbeforeunload = function() {
+			session.terminate();
+		}
+	}
 };

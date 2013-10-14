@@ -73,7 +73,7 @@ class SensorControl(object):
                     polltime = None
                     diff = stamp-startstamp
                     misc.logger.info("stopping (%d ticks in %.3f seconds)" %(ticks, diff))
-                    evs.write(stop={'ticks':ticks, 'duration':round(diff, 3), 'stamp':stamp})
+                    evs.flow(stop={'ticks':ticks, 'duration':round(diff, 3), 'stamp':stamp})
                     ticks = 0
             else:
                 if polltime is None:
@@ -81,17 +81,17 @@ class SensorControl(object):
                     polltime = self._polltime
                     if stopstamp == 0:
                         misc.logger.info("starting")
-                        evs.write(start={'stamp':startstamp})
+                        evs.flow(start={'stamp':startstamp})
                     else:
                         idle = startstamp-stopstamp
                         misc.logger.info("starting (idle for %.3f seconds)" %(idle))
-                        evs.write(start={'idle':round(idle, 3),'stamp':startstamp})
+                        evs.flow(start={'idle':round(idle, 3),'stamp':startstamp})
                 else:
                     if not stopping:
                         diff = stamp - prevstamp
                         speed = ticksdiff/diff
                         misc.logger.info("%.2f (%d)" % (speed, ticks))
-                        evs.write(counts={'speed':round(speed,3), 'ticks':ticks, 'stamp':stamp})
+                        evs.flow(counts={'speed':round(speed,3), 'ticks':ticks, 'stamp':stamp})
             prevticks = ticks
             prevstamp = stamp
 

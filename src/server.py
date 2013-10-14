@@ -33,7 +33,7 @@ class DevControl(object):
     def flow(self, **kargs):
         self.broadcast({'type':'flow', 'cont':kargs})
 
-    def broadcast(self, **kargs):
+    def broadcast(self, kargs):
         self.lock.acquire()
         for sock in self.sockset:
             sock.write_message(kargs)

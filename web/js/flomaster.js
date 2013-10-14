@@ -93,7 +93,7 @@ $(window).load(function(){
 							if(!msg.init.relays || !msg.init.relays.length){
 								console.log("event: no initial relays info");
 							} else {
-								for ( var i = 0; i < msg.init.relays; i++) {
+								for ( var i = 0; i < msg.init.relays.length; i++) {
 									var btn = btnmaker(i+1);
 									relayswitches.push(btn);
 									btnsgrp.append(btn);

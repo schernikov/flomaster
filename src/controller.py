@@ -20,7 +20,8 @@ class SensorControl(object):
             for pin in self.inpins:
                 RPIO.setup(pin, RPIO.IN)
                 def on_turn(pin, val): self.on_turn(pin, val)
-                RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', threaded_callback=True)
+                RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', 
+                                            threaded_callback=True)
             
             RPIO.wait_for_interrupts(threaded=True)
             for pin in self.outpins:
@@ -39,7 +40,7 @@ class SensorControl(object):
 
     @property
     def outpins(self):
-        return (4, 17, 27, 22)
+        return (4, 17, 27, 22, 10, 9, 11, 18)
 
     def set(self, idx, isOn):
         if idx < 0 or idx >= len(self.outpins):

@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 import logging, sys, urlparse, urllib, os
 import tornado
 
-logger = logging.getLogger('flomaster')
+logger = logging.getLogger('undergardner')
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%H:%M:%S')
 

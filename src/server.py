@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
 Created on Oct 9, 2013
 
@@ -40,6 +43,19 @@ class DevControl(object):
             sock.write_message(dd)
         self.lock.release()
 
+class AreaControl(object):
+    areas = ((2, u"Газон"),
+             (4, u"Фронт 1"),
+             (5, u"Фронт 2"),
+             (3, u"Горшки"),
+             (7, u"Помидоры"))
+    
+    def __init__(self):
+        pass
+    
+    def status(self):
+        return [a[1] for a in self.areas]
+
 def convert(mod):
     d = {}
     for nm in dir(mod):
@@ -49,13 +65,16 @@ def convert(mod):
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
     control = DevControl()
+    areacon = AreaControl()
 
     def open(self):
         misc.logger.info("new socket"+str(self))
         self.control.onsock(self)
         self.sendsession({'init':convert(configs.client)})
-        status = self.control.device.status()
-        self.sendevent({'init':status})
+        dstat = self.control.device.status()
+        astat = self.areacon.status()
+        dstat.update({'areas', astat})
+        self.sendevent({'init':dstat})
         
     def on_message(self, message):
         msg = json.loads(message)

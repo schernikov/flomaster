@@ -1,6 +1,7 @@
 $(window).load(function(){
 
 	var btnsgrp = $("#flobtns");
+	var areagrp = $("#areabtns");
 	var relayswitches = [];
 	function btnmaker(idx) {
 		var btn = $("<button>").addClass("btn btn-primary");
@@ -95,12 +96,18 @@ $(window).load(function(){
 							} else {
 								relayswitches = [];
 								btnsgrp.empty();
-								for ( var i = 0; i < msg.init.relays.length; i++) {
-									var btn = btnmaker(i+1);
+								_.each(msg.init.relays, function(rel, idx) {
+									var btn = btnmaker(idx+1);
 									relayswitches.push(btn);
 									btnsgrp.append(btn);
-									if(msg.init.relays[i] == 'on') btn.addClass('active');
-								}
+									if(rel == 'on') btn.addClass('active');
+								});
+								areagrp.empty();
+								_.each(msg.init.areas, function(are, idx) {
+									var btn = $("<button>").addClass("btn btn-primary");
+									btn.append(are);
+									areagrp.append(btn);
+								});
 							}
 						} else if(msg.update) {
 							if(!msg.update.relay || !msg.update.state){

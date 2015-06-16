@@ -15,19 +15,30 @@ $(window).load(function(){
 		});
 		return btn;
 	}
+
+	var active_area = null;
 	function areamaker(nm) {
 		var btn = $("<button>").addClass("btn btn-primary");
 		btn.append(nm);
 		btn.click(function() {
 			if(!btn.hasClass('active')){ /* inverse state here */
+				if (active_area != btn) {
+					if (active_area) { 
+						active_area.removeClass('active');
+						console.log(''+nm+' inactive');
+					}
+					active_area = btn;
+				}
 				console.log(''+nm+' active');
 			} else {
 				console.log(''+nm+' inactive');
+				if (active_area == btn) {
+					active_area = null;
+				}
 			}
 		});
 		return btn;
 	}	
-	
 	
 	var data = [], stamps = [], offset = 0, tickscount = 0;
 	
@@ -115,12 +126,19 @@ $(window).load(function(){
 									btnsgrp.append(btn);
 									if(rel == 'on') btn.addClass('active');
 								});
-								areagrp.empty();
-								_.each(msg.init.areas, function(nm, idx) {
-									var btn = areamaker(nm);
-									areagrp.append(btn);
-								});
 							}
+							areagrp.empty();
+							_.each(msg.init.areas, function(area, idx) {
+								var nm = area[1];
+								var btn = areamaker(nm);
+								areagrp.append(btn);
+							});
+							var mast = msg.init.master;
+							if ((parseInt(mast) === mast) && 
+								mast > 0 && mast <= relayswitches.length) {
+								console.log("master "+mast);
+							}
+							
 						} else if(msg.update) {
 							if(!msg.update.relay || !msg.update.state){
 								console.log("event: bad update info: "+msg.update.toString());

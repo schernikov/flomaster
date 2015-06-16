@@ -44,6 +44,7 @@ class DevControl(object):
         self.lock.release()
 
 class AreaControl(object):
+    master = 1
     areas = ((2, u"Газон"),
              (4, u"Фронт 1"),
              (5, u"Фронт 2"),
@@ -54,7 +55,7 @@ class AreaControl(object):
         pass
     
     def status(self):
-        return [a[1] for a in self.areas]
+        return [[a[0], a[1]] for a in self.areas]
 
 def convert(mod):
     d = {}
@@ -73,7 +74,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         self.sendsession({'init':convert(configs.client)})
         dstat = self.control.device.status()
         astat = self.areacon.status()
-        dstat.update({'areas':astat})
+        dstat.update({'areas':astat, 'master':self.areacon.master})
         self.sendevent({'init':dstat})
         
     def on_message(self, message):

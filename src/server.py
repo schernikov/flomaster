@@ -73,7 +73,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         self.sendsession({'init':convert(configs.client)})
         dstat = self.control.device.status()
         astat = self.areacon.status()
-        dstat.update({'areas', astat})
+        dstat.update({'areas':astat})
         self.sendevent({'init':dstat})
         
     def on_message(self, message):

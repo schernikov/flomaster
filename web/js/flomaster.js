@@ -15,6 +15,19 @@ $(window).load(function(){
 		});
 		return btn;
 	}
+	function areamaker(nm) {
+		var btn = $("<button>").addClass("btn btn-primary");
+		btn.append(nm);
+		btn.click(function() {
+			if(!btn.hasClass('active')){ /* inverse state here */
+				console.log(''+nm+' active');
+			} else {
+				console.log(''+nm+' inactive');
+			}
+		});
+		return btn;
+	}	
+	
 	
 	var data = [], stamps = [], offset = 0, tickscount = 0;
 	
@@ -103,9 +116,8 @@ $(window).load(function(){
 									if(rel == 'on') btn.addClass('active');
 								});
 								areagrp.empty();
-								_.each(msg.init.areas, function(are, idx) {
-									var btn = $("<button>").addClass("btn btn-primary");
-									btn.append(are);
+								_.each(msg.init.areas, function(nm, idx) {
+									var btn = areamaker(nm);
 									areagrp.append(btn);
 								});
 							}

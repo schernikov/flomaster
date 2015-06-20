@@ -136,7 +136,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def sendevent(self, msg, broadcast=False):
         res = {'type':'event', 'cont':msg}
         if broadcast:
-            self.control.broadcast(res, skip=self)
+            self.control.broadcast(res)
         else:
             self.write_message(res)
 

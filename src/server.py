@@ -62,22 +62,22 @@ class AreaControl(object):
         'return currently active index or None'
         return self._active
     
-    def set(self, index, active):
+    def set(self, index, active, handler):
         if not active:
             if self._active == index:
-                print "disable",index 
                 self._active = None
-                #TODO propagate 
+                handler(self.master, False)
+                handler(index, False)
             return
         
         if self._active is None:
             self._active = index
-            print "enable",index
-            #TODO propagate
+            handler(self.master, True)
+            handler(index, True)
             return
-        #TODO propagate previously active disable
-        print "re-enable",self._active,'->',index
-        #TODO propagate newly active disable
+        handler(self._active, False)
+        handler(index, True)
+
         self._active = index
     
 
@@ -140,18 +140,21 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             return
         if isinstance(state, basestring): state = state.lower().strip()
         if relay:
-            try:
-                self.control.device.set(relay-1, state=='on')
-                self.sendevent({'update':{'relay':relay, 'state':state}}, broadcast=True)
-            except Exception, e:
-                misc.logger.info("failed to set relay: %s"%(str(e)))
+            self._onrelay(relay, state=='on')
 
         if area:
             try:
-                self.areacon.set(area, state=='on')
+                self.areacon.set(area, state=='on', self._onrelay)
                 self.sendevent({'update':{'area':area, 'state':state}}, broadcast=True)
             except Exception, e:
                 misc.logger.info("failed to set area: %s"%(str(e)))
+                
+    def _onrelay(self, relay, state):
+        try:
+            self.control.device.set(relay-1, state)
+            self.sendevent({'update':{'relay':relay, 'state':'on' if state else 'off'}}, broadcast=True)
+        except Exception, e:
+            misc.logger.info("failed to set relay: %s"%(str(e)))
 
 def main():
     parser = argparse.ArgumentParser()

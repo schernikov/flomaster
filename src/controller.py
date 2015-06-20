@@ -118,7 +118,7 @@ class SensorControl(object):
                     if not stopping:
                         diff = stamp - prevstamp
                         speed = ticksdiff/diff
-                        misc.logger.info("%.2f (%d)" % (speed, ticks))
+                        misc.logger.debug("%.2f (%d)" % (speed, ticks))
                         evs.flow(counts={'speed':round(speed,3), 'ticks':ticks, 'stamp':stamp})
             prevticks = ticks
             prevstamp = stamp

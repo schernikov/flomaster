@@ -64,16 +64,19 @@ class AreaControl(object):
     
     def set(self, index, active):
         if not active:
-            if self._active == index: 
+            if self._active == index:
+                print "disable",index 
                 self._active = None
                 #TODO propagate 
             return
         
         if self._active is None:
             self._active = index
+            print "enable",index
             #TODO propagate
             return
         #TODO propagate previously active disable
+        print "re-enable",self._active,'->',index
         #TODO propagate newly active disable
         self._active = index
     

@@ -46,16 +46,37 @@ class DevControl(object):
 class AreaControl(object):
     master = 1
     areas = ((2, u"Газон"),
-             (4, u"Фронт 1"),
-             (5, u"Фронт 2"),
+             (4, u"Фронт (выкл)"),
+             (5, u"Фронт Цветы"),
              (3, u"Горшки"),
              (7, u"Помидоры"))
-    
+
+    @classmethod
+    def info(cls):
+        return [[a[0], a[1]] for a in cls.areas]
+
     def __init__(self):
-        pass
+        self._active = None
+        
+    def state(self):
+        'return currently active index or None'
+        return self._active
     
-    def status(self):
-        return [[a[0], a[1]] for a in self.areas]
+    def set(self, index, active):
+        if not active:
+            if self._active == index: 
+                self._active = None
+                #TODO propagate 
+            return
+        
+        if self._active is None:
+            self._active = index
+            #TODO propagate
+            return
+        #TODO propagate previously active disable
+        #TODO propagate newly active disable
+        self._active = index
+    
 
 def convert(mod):
     d = {}
@@ -73,8 +94,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         self.control.onsock(self)
         self.sendsession({'init':convert(configs.client)})
         dstat = self.control.device.status()
-        astat = self.areacon.status()
-        dstat.update({'areas':astat, 'master':self.areacon.master})
+        ainfo = self.areacon.info()
+        dstat.update({'areas':ainfo, 'master':self.areacon.master})
+        active = self.areacon.state()
+        if active: dstat['active'] = active
         self.sendevent({'init':dstat})
         
     def on_message(self, message):
@@ -107,18 +130,25 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
     def onevent(self, msg):
         relay = msg.get('relay', None)
+        area = msg.get('area', None)
         state = msg.get('state', None)
-        if relay is None or state is None:
+        if (relay is None and area is None) or state is None:
             misc.logger.info("unexpected event: %s"%(str(msg)))
             return
-        if isinstance(state, basestring):
-            state = state.lower().strip()
-        idx = relay-1
-        try:
-            self.control.device.set(idx, state=='on')
-            self.sendevent({'update':{'relay':relay, 'state':state}}, broadcast=True)
-        except Exception, e:
-            misc.logger.info("failed to set relay: %s"%(str(e)))
+        if isinstance(state, basestring): state = state.lower().strip()
+        if relay:
+            try:
+                self.control.device.set(relay-1, state=='on')
+                self.sendevent({'update':{'relay':relay, 'state':state}}, broadcast=True)
+            except Exception, e:
+                misc.logger.info("failed to set relay: %s"%(str(e)))
+
+        if area:
+            try:
+                self.areacon.set(area, state=='on')
+                self.sendevent({'update':{'area':area, 'state':state}}, broadcast=True)
+            except Exception, e:
+                misc.logger.info("failed to set area: %s"%(str(e)))
 
 def main():
     parser = argparse.ArgumentParser()

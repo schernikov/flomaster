@@ -17,26 +17,30 @@ $(window).load(function(){
 	}
 
 	var active_area = null;
-	function areamaker(nm) {
+	var areas = {};
+	function switch_area(btn, active) {
+		if(!btn.hasClass('active')){ /* inverse state here */
+			if (active_area != btn) {
+				if (active_area) { 
+					active_area.removeClass('active');
+				}
+				active_area = btn;
+			}
+		} else {
+			if (active_area == btn) {
+				active_area = null;
+			}
+		}
+	}
+	function areamaker(nm, idx) {
 		var btn = $("<button>").addClass("btn btn-primary");
 		btn.append(nm);
 		btn.click(function() {
-			if(!btn.hasClass('active')){ /* inverse state here */
-				if (active_area != btn) {
-					if (active_area) { 
-						active_area.removeClass('active');
-						console.log(''+nm+' inactive');
-					}
-					active_area = btn;
-				}
-				console.log(''+nm+' active');
-			} else {
-				console.log(''+nm+' inactive');
-				if (active_area == btn) {
-					active_area = null;
-				}
-			}
+			var active = !btn.hasClass('active'); /* inverse state here */
+			switch_area(btn, active);
+			connection.sendmsg({'area':idx, 'state':(active?'on':'off')});
 		});
+		areas[idx] = btn;
 		return btn;
 	}	
 	
@@ -129,8 +133,7 @@ $(window).load(function(){
 							}
 							areagrp.empty();
 							_.each(msg.init.areas, function(area, idx) {
-								var nm = area[1];
-								var btn = areamaker(nm);
+								var btn = areamaker(area[1], area[0]);
 								areagrp.append(btn);
 							});
 							var mast = msg.init.master;
@@ -140,18 +143,24 @@ $(window).load(function(){
 							}
 							
 						} else if(msg.update) {
-							if(!msg.update.relay || !msg.update.state){
+							if(!(msg.update.relay || msg.init.area) || !msg.update.state){
 								console.log("event: bad update info: "+msg.update.toString());
 							} else {
-								var idx = msg.update.relay-1;
-								if(idx >= relayswitches.length || idx < 0){
-									console.log("event: invalid relay: "+msg.update.toString());
-								} else {
-									if(msg.update.state == 'on'){
-										relayswitches[idx].addClass('active');
+								if (msg.update.relay) {
+									var idx = msg.update.relay-1;
+									if(idx >= relayswitches.length || idx < 0){
+										console.log("event: invalid relay: "+msg.update.toString());
 									} else {
-										relayswitches[idx].removeClass('active');
+										if(msg.update.state == 'on'){
+											relayswitches[idx].addClass('active');
+										} else {
+											relayswitches[idx].removeClass('active');
+										}
 									}
+								}
+								if (msg.init.area) {
+									var btn = areas[msg.init.area];
+									if (btn) switch_area(btn, (msg.update.state == 'on'));
 								}
 							}
 						} else {
@@ -213,6 +222,6 @@ function Plotter(params) {
 	place.append(stats);
 	self.onstats = function(count) {
 		stats.empty();
-		stats.append(count);
+		stats.append((count*0.003355).toFixed(2)+' литров');
 	}
 }

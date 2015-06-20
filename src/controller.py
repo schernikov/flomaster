@@ -6,6 +6,11 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 
 """
 
+"""
+15117 ticks, 97 seconds, 50.7 liters 
+"""
+
+
 import time, threading
 import misc
 try:

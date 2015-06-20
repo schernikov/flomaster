@@ -57,6 +57,7 @@ class AreaControl(object):
 
     def __init__(self):
         self._active = None
+        self._lock = threading.RLock()
         
     def state(self):
         'return currently active index or None'
@@ -66,20 +67,28 @@ class AreaControl(object):
         if not active:
             if self._active == index:
                 self._active = None
-                handler(self.master, False)
-                handler(index, False)
+              
+                self._onset(handler, (index, False), (self.master, False))
             return
         
         if self._active is None:
             self._active = index
-            handler(self.master, True)
-            handler(index, True)
+            
+            self._onset(handler, (self.master, True), (index, True))
             return
-        handler(self._active, False)
-        handler(index, True)
+        
+        self._onset(handler, (self._active, False), (index, True))
 
         self._active = index
-    
+
+    def _onset(self, handler, args1, args2):
+        self._lock.acquire()
+        
+        handler(*args1)
+        handler(*args2)
+        
+        self._lock.release()
+
 
 def convert(mod):
     d = {}

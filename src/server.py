@@ -79,35 +79,35 @@ class AreaControl(object):
         'return currently active index or None'
         return self._active
     
-    def set(self, index, active, handler):
+    def set(self, index, active):
         if not active:
             if self._active == index:
                 self._active = None
               
-                self._onset(handler, (index, False), (controller.master, False))
+                self._onset((index, False), (controller.master, False))
             return
         
         if self._active is None:
             self._active = index
             
-            self._onset(handler, (controller.master, True), (index, True))
+            self._onset((controller.master, True), (index, True))
             return
         
-        self._onset(handler, (self._active, False), (index, True))
+        self._onset((self._active, False), (index, True))
 
         self._active = index
 
-    def _onset(self, handler, args1, args2):
+    def _onset(self, args1, args2):
         self._lock.acquire()
         
-        handler(*args1)
-        handler(*args2)
+        self._control.switch(*args1)
+        self._control.switch(*args2)
         
         self._lock.release()
         
     def switch(self, area, state):
         try:
-            self.areacon.set(area, state, self._control.switch)
+            self.set(area, state)
             self._control.anounce('area', area, state)
         except Exception, e:
             misc.logger.info("failed to set area: %s"%(str(e)))

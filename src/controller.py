@@ -13,11 +13,11 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 15117 ticks, 97 seconds, 50.7 liters 
 """
 master = 1
-areas = ((2, u"Газон"),
-         (4, u"Фронт (выкл)"),
-         (5, u"Фронт Цветы"),
-         (3, u"Горшки"),
-         (7, u"Помидоры"))
+areas = ((2, u"Газон", 90, 24),
+         (4, u"Фронт (выкл)", 0, 0),
+         (5, u"Фронт Цветы", 90, 9),
+         (3, u"Горшки", 120, 10),
+         (7, u"Помидоры", 120, 12))
 
 import time, threading
 import misc

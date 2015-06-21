@@ -14,8 +14,9 @@ import misc, controller, configs.client
 loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web')))
 
 tz = pytz.timezone('US/Pacific')
-shed_hour = 4
-shed_minute = 0
+oneday = 86400 # in seconds
+shed_hour = 21
+shed_minute = 18
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -151,11 +152,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self._onrelay(relay, state=='on')
 
         if area:
-            try:
-                self.areacon.set(area, state=='on', self._onrelay)
-                self.sendevent({'update':{'area':area, 'state':state}}, broadcast=True)
-            except Exception, e:
-                misc.logger.info("failed to set area: %s"%(str(e)))
+            self._onarea(area, state=='on')
                 
     def _onrelay(self, relay, state):
         try:
@@ -163,13 +160,55 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.sendevent({'update':{'relay':relay, 'state':'on' if state else 'off'}}, broadcast=True)
         except Exception, e:
             misc.logger.info("failed to set relay: %s"%(str(e)))
+            
+    def _onarea(self, area, state):
+        try:
+            self.areacon.set(area, state, self._onrelay)
+            self.sendevent({'update':{'area':area, 'state':'on' if state else 'off'}}, broadcast=True)
+        except Exception, e:
+            misc.logger.info("failed to set area: %s"%(str(e)))
 
-def periodic_call():
+    def start(self, idx):
+        self._onarea(idx, True)
+        
+    def stop(self, idx):
+        self._onarea(idx, False)
+
+def shed_stop(control, area, pos):
+    control.stop(area)
+    shed_start(control, pos)
+
+def scheduled(control):
+    reschedule(control)
+    shed_start(control, 0)
+
+def shed_start(control, pos):
+    if pos >= len(controller.areas): return
+        
+    inst = tornado.ioloop.IOLoop.instance()
+    a = controller.areas[pos]
+    pos += 1
+    
+    area = a[0]
+    nm = a[1]
+    seconds = a[2]
+
+    if seconds > 0:
+        misc.logger.info("shed: starting %s"%(nm))
+        control.start(area)
+        inst.call_later(seconds, shed_stop, control, area, pos)
+    else:
+        shed_start(control, pos)
+
+def reschedule(control):
     now = datetime.datetime.now(tz)
     now.day + 1
-    nxt = now.replace(day=now.day+1, hour=shed_hour, minute=shed_minute)
+    nxt = now.replace(day=now.day+1, hour=shed_hour, minute=shed_minute, second=0, microsecond=0)
     seconds = (nxt-now).total_seconds()
+    if seconds > oneday: seconds = oneday
+        
     misc.logger.info("periodic in %s"%(seconds))
+    tornado.ioloop.IOLoop.instance().call_later(seconds, scheduled, control)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -197,9 +236,7 @@ def main():
     th.daemon = True
     th.start()
 
-    periodic = tornado.ioloop.PeriodicCallback(periodic_call, 10000)
-    
-    periodic.start()
+    reschedule(SocketHandler.areacon)
 
     tornado.ioloop.IOLoop.instance().start()
     

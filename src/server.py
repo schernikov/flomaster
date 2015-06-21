@@ -8,7 +8,7 @@ Created on Oct 9, 2013
 '''
 
 import os, uuid, argparse, threading, json, datetime, pytz
-import tornado.ioloop, tornado.web, tornado.websocket
+import tornado.ioloop, tornado.web, tornado.websocket, requests
 import misc, controller, configs.client
 
 loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web')))
@@ -182,8 +182,8 @@ def shed_stop(control, area, pos):
     control.stop(area)
     shed_start(control, pos)
 
-def scheduled(control):
-    reschedule(control)
+def scheduled(control, url):
+    reschedule(control, url)
     shed_start(control, 0)
 
 def shed_start(control, pos):
@@ -204,7 +204,7 @@ def shed_start(control, pos):
     else:
         shed_start(control, pos)
 
-def reschedule(control):
+def reschedule(control, url):
     now = datetime.datetime.now(tz)
     nxt = now.replace(hour=shed_hour, minute=shed_minute, second=0, microsecond=0)
     if nxt <= now: nxt = nxt.replace(day=now.day+1)
@@ -212,11 +212,19 @@ def reschedule(control):
     if seconds > oneday: seconds = oneday
         
     misc.logger.info("re-scheduling in %s"%(seconds))
-    tornado.ioloop.IOLoop.instance().call_later(seconds, scheduled, control)
+    tornado.ioloop.IOLoop.instance().call_later(seconds, scheduled, control, url)
+
+    if url:
+        try:
+            # kick something outside to announce it is alive  
+            requests.get(url, timeout=1)
+        except:
+            pass
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
+    parser.add_argument('-n', '--ping', help='url to ping')
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
     args = parser.parse_args()
     misc.logger.info('listening on %s:%d'%(args.host, args.port))
@@ -240,7 +248,7 @@ def main():
     th.daemon = True
     th.start()
 
-    reschedule(SocketHandler.areacon)
+    reschedule(SocketHandler.areacon, args.ping)
 
     tornado.ioloop.IOLoop.instance().start()
     

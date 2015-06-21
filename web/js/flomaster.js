@@ -143,7 +143,7 @@ $(window).load(function(){
 							}
 							
 						} else if(msg.update) {
-							if(!(msg.update.relay || msg.init.area) || !msg.update.state){
+							if(!(msg.update.relay || msg.update.area) || !msg.update.state){
 								console.log("event: bad update info: "+msg.update.toString());
 							} else {
 								if (msg.update.relay) {
@@ -158,8 +158,8 @@ $(window).load(function(){
 										}
 									}
 								}
-								if (msg.init.area) {
-									var btn = areas[msg.init.area];
+								if (msg.update.area) {
+									var btn = areas[msg.update.area];
 									if (btn) switch_area(btn, (msg.update.state == 'on'));
 								}
 							}

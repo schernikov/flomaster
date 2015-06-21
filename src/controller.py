@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 echo "4" > /sys/class/gpio/export
 echo "high" > /sys/class/gpio/gpio4/direction
@@ -9,7 +12,12 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 """
 15117 ticks, 97 seconds, 50.7 liters 
 """
-
+master = 1
+areas = ((2, u"Газон"),
+         (4, u"Фронт (выкл)"),
+         (5, u"Фронт Цветы"),
+         (3, u"Горшки"),
+         (7, u"Помидоры"))
 
 import time, threading
 import misc
@@ -38,6 +46,9 @@ class SensorControl(object):
         self._startstamp = 0
         self._stamp = 0
         self._stopgrace = 1 # seconds
+        self._names = {}
+        for a in areas:
+            self._names[a[0]-1] = a[1]
 
     @property
     def inpins(self):
@@ -50,6 +61,10 @@ class SensorControl(object):
     def set(self, idx, isOn):
         if idx < 0 or idx >= len(self.outpins):
             raise Exception("invalid relay switched: %s"%(str(idx)))
+        
+        nm = self._names.get(idx, None)
+        if nm: misc.logger.info("%s %s" %('starting' if isOn else 'stopping', nm))
+
         RPIO.output(self.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
 
     def status(self):

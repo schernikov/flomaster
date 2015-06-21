@@ -44,16 +44,10 @@ class DevControl(object):
         self.lock.release()
 
 class AreaControl(object):
-    master = 1
-    areas = ((2, u"Газон"),
-             (4, u"Фронт (выкл)"),
-             (5, u"Фронт Цветы"),
-             (3, u"Горшки"),
-             (7, u"Помидоры"))
 
     @classmethod
     def info(cls):
-        return [[a[0], a[1]] for a in cls.areas]
+        return [[a[0], a[1]] for a in controller.areas]
 
     def __init__(self):
         self._active = None
@@ -68,13 +62,13 @@ class AreaControl(object):
             if self._active == index:
                 self._active = None
               
-                self._onset(handler, (index, False), (self.master, False))
+                self._onset(handler, (index, False), (controller.master, False))
             return
         
         if self._active is None:
             self._active = index
             
-            self._onset(handler, (self.master, True), (index, True))
+            self._onset(handler, (controller.master, True), (index, True))
             return
         
         self._onset(handler, (self._active, False), (index, True))
@@ -107,7 +101,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         self.sendsession({'init':convert(configs.client)})
         dstat = self.control.device.status()
         ainfo = self.areacon.info()
-        dstat.update({'areas':ainfo, 'master':self.areacon.master})
+        dstat.update({'areas':ainfo, 'master':controller.master})
         active = self.areacon.state()
         if active: dstat['active'] = active
         self.sendevent({'init':dstat})
@@ -165,6 +159,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         except Exception, e:
             misc.logger.info("failed to set relay: %s"%(str(e)))
 
+def periodic():
+    misc.logger.info("periodic")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
@@ -190,6 +187,10 @@ def main():
     th = threading.Thread(target=scont, name='SensorController')
     th.daemon = True
     th.start()
+
+    periodic = tornado.ioloop.PeriodicCallback(periodic, 10000)
+    
+    periodic.start()
 
     tornado.ioloop.IOLoop.instance().start()
     

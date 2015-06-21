@@ -20,7 +20,7 @@ $(window).load(function(){
 	var areas = {};
 	function switch_area(btn, active) {
 		if(!btn.hasClass('active')){ /* inverse state here */
-			if (active_area != btn) {
+			if (!active_area || active_area[0] != btn[0]) {
 				if (active_area) { 
 					active_area.removeClass('active');
 				}

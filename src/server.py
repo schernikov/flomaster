@@ -15,8 +15,8 @@ loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '
 
 tz = pytz.timezone('US/Pacific')
 oneday = 86400 # in seconds
-shed_hour = 21
-shed_minute = 18
+shed_hour = 4
+shed_minute = 0
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -24,6 +24,10 @@ class MainHandler(tornado.web.RequestHandler):
         self.write({"msg":"Hello, world"})
 
 class DevControl(object):
+    @classmethod
+    def genevent(self, msg):
+        return {'type':'event', 'cont':msg}
+    
     def __init__(self):
         self.device = None
         self.sockset = set()
@@ -48,6 +52,17 @@ class DevControl(object):
             if sock == skip: continue
             sock.write_message(dd)
         self.lock.release()
+        
+    def switch(self, relay, state):
+        try:
+            self.device.set(relay-1, state)
+            self.anounce('relay', relay, state)
+        except Exception, e:
+            misc.logger.info("failed to set relay: %s"%(str(e)))
+            
+    def anounce(self, nm, idx, state):
+        self.broadcast(self.genevent({'update':{nm:idx, 'state':'on' if state else 'off'}}))
+
 
 class AreaControl(object):
 
@@ -55,9 +70,10 @@ class AreaControl(object):
     def info(cls):
         return [[a[0], a[1]] for a in controller.areas]
 
-    def __init__(self):
+    def __init__(self, control):
         self._active = None
         self._lock = threading.RLock()
+        self._control = control
         
     def state(self):
         'return currently active index or None'
@@ -88,6 +104,19 @@ class AreaControl(object):
         handler(*args2)
         
         self._lock.release()
+        
+    def switch(self, area, state):
+        try:
+            self.areacon.set(area, state, self._control.switch)
+            self._control.anounce('area', area, state)
+        except Exception, e:
+            misc.logger.info("failed to set area: %s"%(str(e)))
+        
+    def start(self, idx):
+        self.switch(idx, True)
+        
+    def stop(self, idx):
+        self.switch(idx, False)
 
 
 def convert(mod):
@@ -99,7 +128,7 @@ def convert(mod):
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
     control = DevControl()
-    areacon = AreaControl()
+    areacon = AreaControl(control)
 
     def open(self):
         misc.logger.info("new socket"+str(self))
@@ -110,7 +139,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         dstat.update({'areas':ainfo, 'master':controller.master})
         active = self.areacon.state()
         if active: dstat['active'] = active
-        self.sendevent({'init':dstat})
+
+        self.write_message(self.control.genevent({'init':dstat}))
         
     def on_message(self, message):
         msg = json.loads(message)
@@ -133,13 +163,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def sendsession(self, msg):
         self.write_message({'type':'session', 'cont':msg})
         
-    def sendevent(self, msg, broadcast=False):
-        res = {'type':'event', 'cont':msg}
-        if broadcast:
-            self.control.broadcast(res)
-        else:
-            self.write_message(res)
-
     def onevent(self, msg):
         relay = msg.get('relay', None)
         area = msg.get('area', None)
@@ -149,30 +172,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             return
         if isinstance(state, basestring): state = state.lower().strip()
         if relay:
-            self._onrelay(relay, state=='on')
+            self.control.switch(relay, state=='on')
 
         if area:
-            self._onarea(area, state=='on')
+            self.areacon.switch(area, state=='on')
                 
-    def _onrelay(self, relay, state):
-        try:
-            self.control.device.set(relay-1, state)
-            self.sendevent({'update':{'relay':relay, 'state':'on' if state else 'off'}}, broadcast=True)
-        except Exception, e:
-            misc.logger.info("failed to set relay: %s"%(str(e)))
-            
-    def _onarea(self, area, state):
-        try:
-            self.areacon.set(area, state, self._onrelay)
-            self.sendevent({'update':{'area':area, 'state':'on' if state else 'off'}}, broadcast=True)
-        except Exception, e:
-            misc.logger.info("failed to set area: %s"%(str(e)))
-
-    def start(self, idx):
-        self._onarea(idx, True)
-        
-    def stop(self, idx):
-        self._onarea(idx, False)
 
 def shed_stop(control, area, pos):
     control.stop(area)
@@ -202,12 +206,12 @@ def shed_start(control, pos):
 
 def reschedule(control):
     now = datetime.datetime.now(tz)
-    now.day + 1
-    nxt = now.replace(day=now.day+1, hour=shed_hour, minute=shed_minute, second=0, microsecond=0)
+    nxt = now.replace(hour=shed_hour, minute=shed_minute, second=0, microsecond=0)
+    if nxt <= now: nxt = nxt.replace(day=now.day+1)
     seconds = (nxt-now).total_seconds()
     if seconds > oneday: seconds = oneday
         
-    misc.logger.info("periodic in %s"%(seconds))
+    misc.logger.info("re-scheduling in %s"%(seconds))
     tornado.ioloop.IOLoop.instance().call_later(seconds, scheduled, control)
 
 def main():

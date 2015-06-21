@@ -27,7 +27,7 @@ $(window).load(function(){
 				active_area = btn;
 			}
 		} else {
-			if (active_area == btn) {
+			if (active_area && active_area[0] == btn[0]) {
 				active_area = null;
 			}
 		}
@@ -160,7 +160,15 @@ $(window).load(function(){
 								}
 								if (msg.update.area) {
 									var btn = areas[msg.update.area];
-									if (btn) switch_area(btn, (msg.update.state == 'on'));
+									if (btn) {
+										var isOn = (msg.update.state == 'on');
+										switch_area(btn, isOn);
+										if (isOn) {
+											btn.addClass('active');
+										} else {
+											btn.removeClass('active');
+										}
+									}
 								}
 							}
 						} else {

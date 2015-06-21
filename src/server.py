@@ -14,6 +14,9 @@ import misc, controller, configs.client
 loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web')))
 
 tz = pytz.timezone('US/Pacific')
+shed_hour = 4
+shed_minute = 0
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -163,7 +166,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
 def periodic_call():
     now = datetime.datetime.now(tz)
-    misc.logger.info("periodic %s"%(str(now)))
+    now.day + 1
+    nxt = now.replace(day=now.day+1, hour=shed_hour, minute=shed_minute)
+    seconds = (nxt-now).total_seconds()
+    misc.logger.info("periodic in %s"%(seconds))
 
 def main():
     parser = argparse.ArgumentParser()

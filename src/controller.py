@@ -26,6 +26,8 @@ try:
 except:
     RPIO = None
     misc.logger.warning('RPIO is not available')
+    import sys
+    sys.exit(-1)
 
 class SensorControl(object):
     def __init__(self):

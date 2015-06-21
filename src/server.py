@@ -7,11 +7,13 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, threading, json
+import os, uuid, argparse, threading, json, datetime, pytz
 import tornado.ioloop, tornado.web, tornado.websocket
 import misc, controller, configs.client
 
 loc = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'web')))
+
+tz = pytz.timezone('US/Pacific')
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -159,8 +161,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         except Exception, e:
             misc.logger.info("failed to set relay: %s"%(str(e)))
 
-def periodic():
-    misc.logger.info("periodic")
+def periodic_call():
+    now = datetime.datetime.now(tz)
+    misc.logger.info("periodic %s"%(str(now)))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -188,7 +191,7 @@ def main():
     th.daemon = True
     th.start()
 
-    periodic = tornado.ioloop.PeriodicCallback(periodic, 10000)
+    periodic = tornado.ioloop.PeriodicCallback(periodic_call, 10000)
     
     periodic.start()
 

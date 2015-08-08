@@ -1,0 +1,4 @@
+* report RPi temperature
+* water by volume, not by time
+* online scheduling
+* http://smoothiecharts.org/ -- efficient live plotting

@@ -237,7 +237,7 @@ def main():
                                    (r'/(index.html)', tornado.web.StaticFileHandler, {"path": loc}),
                                    (r'/ui/(.*)$', tornado.web.StaticFileHandler, {"path": os.path.join(loc, 'ui')}),
                                    (r'/js/(.*)$', tornado.web.StaticFileHandler, {"path": os.path.join(loc, 'js')}),
-                                  ], debug=True, cookie_secret=str(uuid.uuid4()))
+                                  ], debug=False, cookie_secret=str(uuid.uuid4()))
     
     app.listen(args.port, address=args.host)
 

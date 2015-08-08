@@ -13,11 +13,11 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 15117 ticks, 97 seconds, 50.7 liters 
 """
 master = 1
-areas = ((2, u"Газон", 90, 24),
+areas = ((2, u"Газон", 190, 24),
          (4, u"Фронт (выкл)", 0, 0),
          (5, u"Фронт Цветы", 90, 9),
-         (3, u"Горшки", 120, 10),
-         (7, u"Помидоры", 120, 12))
+         (3, u"Горшки", 220, 10),
+         (7, u"Помидоры", 220, 12))
 
 import time, threading
 import misc
@@ -34,8 +34,7 @@ class SensorControl(object):
         if RPIO:
             for pin in self.inpins:
                 RPIO.setup(pin, RPIO.IN)
-                def on_turn(pin, val): self.on_turn(pin, val)
-                RPIO.add_interrupt_callback(pin, on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', 
+                RPIO.add_interrupt_callback(pin, self.on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', 
                                             threaded_callback=True)
             
             RPIO.wait_for_interrupts(threaded=True)

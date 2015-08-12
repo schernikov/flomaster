@@ -1,3 +1,5 @@
 eclipse.preferences.version=1
-encoding//src/controller.py=utf-8
-encoding//src/server.py=utf-8
+encoding//src/configs/client.py=utf-8
+encoding//src/configs/server.py=utf-8
+encoding//src/parts/controller.py=utf-8
+encoding//src/parts/server.py=utf-8

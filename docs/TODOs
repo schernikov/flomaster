@@ -1,4 +1,4 @@
-* report RPi temperature
+* report RPi temperature "vcgencmd measure_temp"
 * water by volume, not by time
 * online scheduling
 * http://smoothiecharts.org/ -- efficient live plotting

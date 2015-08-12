@@ -92,23 +92,22 @@ $(window).load(function(){
 
 	var plotter = new Plotter(params);	
 	
-	function onspeed(speed, stamp, ticks) {
+	function onspeed(speed, stamp, liters) {
 		if(!params.init){
 			params.oninit(stamp);
 		}		
 		data.push(speed);
 		stamps.push(stamp);
-		plotter.onstats(ticks);
+		plotter.onstats(liters);
 	};
 
 	var connection = new flowtools.Connection('/websocket', 
 			{'flow':function(msg) {
 						if(msg.counts){
-							onspeed(msg.counts.speed, msg.counts.stamp, tickscount+msg.counts.ticks);
+							onspeed(msg.counts.speed, msg.counts.stamp, tickscount+msg.counts.liters);
 						} else if (msg.stop) {
-							tickscount += msg.stop.ticks;
+							tickscount += msg.stop.liters;
 							onspeed(0, msg.stop.stamp, tickscount);
-							console.log("stop: "+new Date().toString())
 						} else if(msg.start) {
 							stamp = msg.start.stamp;
 							onspeed(0, msg.start.stamp, tickscount);
@@ -228,8 +227,8 @@ function Plotter(params) {
 	};
 	var stats = $('<div>').addClass('flostats'); 
 	place.append(stats);
-	self.onstats = function(count) {
+	self.onstats = function(liters) {
 		stats.empty();
-		stats.append((count*0.003355).toFixed(2)+' литров');
+		stats.append(liters.toFixed(2)+' литров');
 	}
 }

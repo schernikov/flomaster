@@ -12,34 +12,62 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 """
 15117 ticks, 97 seconds, 50.7 liters 
 """
-master = 1
-areas = ((2, u"Газон", 190, 24),
-         (4, u"Фронт (выкл)", 0, 0),
-         (5, u"Фронт Цветы", 90, 9),
-         (3, u"Горшки", 220, 10),
-         (7, u"Помидоры", 220, 12))
 
 import time, threading
-import misc
+import configs.server
+import parts.misc
+
+
+def setup(callback):
+    for pin in configs.server.inpins:
+        RPIO.setup(pin, RPIO.IN)
+        RPIO.add_interrupt_callback(pin, callback, pull_up_down=RPIO.PUD_DOWN, edge='rising', 
+                                    threaded_callback=True)
+    
+    RPIO.wait_for_interrupts(threaded=True)
+    for pin in configs.server.outpins:
+        RPIO.setup(pin, RPIO.OUT, initial=RPIO.HIGH)
+
 try:
     import RPIO
 except:
-    RPIO = None
-    misc.logger.warning('RPIO is not available')
-    import sys
-    sys.exit(-1)
+    configs.server.debug = True
+    import test.sim
+    RPIO = test.sim.RPIOSim()
+    def setup(callback): 
+        RPIO.setup(callback)
+
+    parts.misc.logger.warning('RPIO is not available. Switching to simulated RPIO.')
+
+class RelayControl(object):
+    
+    def __init__(self):
+        self._names = {}
+        for a in configs.server.areas:
+            self._names[a[0]-1] = a[1]
+
+    def set(self, idx, isOn):
+        if idx < 0 or idx >= len(configs.server.outpins):
+            raise Exception("invalid relay switched: %s"%(str(idx)))
+        
+        nm = self._names.get(idx, None)
+        if nm: parts.misc.logger.info("%s %s" %('starting' if isOn else 'stopping', nm))
+
+        RPIO.output(configs.server.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
+
+    def status(self):
+        outs = []; ins = []
+        for pin in configs.server.outpins:
+            outs.append(RPIO.input(pin) and 'off' or 'on')
+        for pin in configs.server.inpins:
+            ins.append(RPIO.input(pin) and 'off' or 'on')
+        return {'relays':outs, 'sensors':ins}
+
 
 class SensorControl(object):
-    def __init__(self):
-        if RPIO:
-            for pin in self.inpins:
-                RPIO.setup(pin, RPIO.IN)
-                RPIO.add_interrupt_callback(pin, self.on_turn, pull_up_down=RPIO.PUD_DOWN, edge='rising', 
-                                            threaded_callback=True)
-            
-            RPIO.wait_for_interrupts(threaded=True)
-            for pin in self.outpins:
-                RPIO.setup(pin, RPIO.OUT, initial=RPIO.HIGH)
+    
+    def __init__(self, action):
+        setup(self.on_turn)
 
         self._cond = threading.Condition()
         self._tickcount = 0
@@ -47,36 +75,12 @@ class SensorControl(object):
         self._startstamp = 0
         self._stamp = 0
         self._stopgrace = 1 # seconds
-        self._names = {}
-        for a in areas:
-            self._names[a[0]-1] = a[1]
 
-    @property
-    def inpins(self):
-        return (23,)
+        th = threading.Thread(target=self._loop, name=self.__class__.__name__, args=(action,))
+        th.daemon = True
+        th.start()
 
-    @property
-    def outpins(self):
-        return (4, 17, 27, 22, 10, 9, 11, 18)
-
-    def set(self, idx, isOn):
-        if idx < 0 or idx >= len(self.outpins):
-            raise Exception("invalid relay switched: %s"%(str(idx)))
-        
-        nm = self._names.get(idx, None)
-        if nm: misc.logger.info("%s %s" %('starting' if isOn else 'stopping', nm))
-
-        RPIO.output(self.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
-
-    def status(self):
-        outs = []; ins = []
-        for pin in self.outpins:
-            outs.append(RPIO.input(pin) and 'off' or 'on')
-        for pin in self.inpins:
-            ins.append(RPIO.input(pin) and 'off' or 'on')
-        return {'relays':outs, 'sensors':ins}
-
-    def loop(self, evs):
+    def _loop(self, act):
         prevticks = 0
         prevstamp = 0
         polltime = None
@@ -116,26 +120,25 @@ class SensorControl(object):
                 if polltime:
                     polltime = None
                     diff = stamp-startstamp
-                    misc.logger.info("stopping (%d ticks in %.3f seconds)" %(ticks, diff))
-                    evs.flow(stop={'ticks':ticks, 'duration':round(diff, 3), 'stamp':stamp})
+                    act.onstop(stamp, ticks*configs.server.ticks2liters, diff)
                     ticks = 0
             else:
                 if polltime is None:
                     stopping = False 
                     polltime = self._polltime
                     if stopstamp == 0:
-                        misc.logger.info("starting")
-                        evs.flow(start={'stamp':startstamp})
+                        act.onstart(startstamp, 0)
                     else:
                         idle = startstamp-stopstamp
-                        misc.logger.info("starting (idle for %.3f seconds)" %(idle))
-                        evs.flow(start={'idle':round(idle, 3),'stamp':startstamp})
+                        act.onstart(startstamp, idle)
                 else:
                     if not stopping:
                         diff = stamp - prevstamp
-                        speed = ticksdiff/diff
-                        misc.logger.debug("%.2f (%d)" % (speed, ticks))
-                        evs.flow(counts={'speed':round(speed,3), 'ticks':ticks, 'stamp':stamp})
+                        if diff > 0:
+                            liters = ticksdiff*configs.server.ticks2liters
+                            speed = liters/diff
+                            act.oncount(stamp, ticks*configs.server.ticks2liters, speed)
+
             prevticks = ticks
             prevstamp = stamp
 

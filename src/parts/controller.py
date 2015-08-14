@@ -71,7 +71,7 @@ class SensorControl(object):
 
         self._cond = threading.Condition()
         self._tickcount = 0
-        self._polltime = 0.1 # seconds
+        self._polltime = 0.5 # seconds
         self._startstamp = 0
         self._stamp = 0
         self._stopgrace = 1 # seconds
@@ -137,7 +137,7 @@ class SensorControl(object):
                         if diff > 0:
                             liters = ticksdiff*configs.server.ticks2liters
                             speed = liters/diff
-                            act.oncount(stamp, ticks*configs.server.ticks2liters, speed)
+                            act.oncount(stamp, ticks*configs.server.ticks2liters, liters, speed)
 
             prevticks = ticks
             prevstamp = stamp

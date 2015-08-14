@@ -44,9 +44,9 @@ $(window).load(function(){
 		return btn;
 	}	
 	
-	var data = [], stamps = [], offset = 0, tickscount = 0;
+	var /*data = [], stamps = [], */offset = 0, tickscount = 0;
 	
-	var params = {
+/*	var params = {
 		init: false,
 		top: 300,
 		window: 30, // seconds
@@ -89,16 +89,11 @@ $(window).load(function(){
 			plotter.show(vals);
 		},
 	};
-
-	var plotter = new Plotter(params);	
+*/
+	var plotter = new Plotter();	
 	
 	function onspeed(speed, stamp, liters) {
-		if(!params.init){
-			params.oninit(stamp);
-		}		
-		data.push(speed);
-		stamps.push(stamp);
-		plotter.onstats(liters);
+		plotter.onstats(stamp, speed, liters);
 	};
 
 	var connection = new flowtools.Connection('/websocket', 
@@ -111,7 +106,7 @@ $(window).load(function(){
 						} else if(msg.start) {
 							stamp = msg.start.stamp;
 							onspeed(0, msg.start.stamp, tickscount);
-							params.onstart();
+							plotter.start();
 						} else {
 							console.log("flow got: '"+msg.toString()+"'");
 						}
@@ -176,59 +171,35 @@ $(window).load(function(){
 					}
 			}
 	);
-	
-	function getData(cutoff) {
-		var res = [];
-		if(stamps.length > 1){
-			var last = stamps.length-1;
-			for (var i = 1; i < stamps.length; ++i) {
-				if(stamps[i] > cutoff){
-					last = i-1;
-					break;
-				}
-			}
-			if(last > 0){
-				data = data.slice(last);
-				stamps = stamps.slice(last);
-			}
-		}
-		for (var i = 0; i < data.length; ++i) {
-			res.push([(stamps[i]-cutoff), data[i]])
-		}
-		return res;
-	}
 });
 
-function Plotter(params) {
+function Plotter(/*params*/) {
 	var self = this;
-	var place = $('#placeholder');
+	var live = $('#liveflow');
 	
-	var plot = $.plot(place, [ [[0, 0]] ], {
-		series: {
-			shadowSize: 0	// Drawing is faster without shadows
-		},
-		yaxis: {
-			min: 0,
-			max: params.top,
-		},
-		xaxis: {
-			min: 0,
-			max: params.window,
-			//show: false
-		}
-	});
+	var smoothie = new SmoothieChart({millisPerPixel:30, 
+		grid:{fillStyle:'#ffffff',strokeStyle:'rgba(119,119,119,0.34)',borderVisible:false,
+			  verticalSections:0,
+			  millisPerLine:5000},
+		maxValueScale:1.2,
+		labels:{fillStyle:'rgba(99,99,99,0.78)'},
+		minValue:0/*,
+		timestampFormatter:SmoothieChart.timeFormatter*/});
+	
+	var series = new TimeSeries();
+	smoothie.addTimeSeries(series, {lineWidth:2,strokeStyle:'#00ff00',fillStyle:'rgba(0,0,0,0.30)'});
+	smoothie.streamTo(document.getElementById("liveflow"), 2000);
+	
+	var stats = $('<div>').addClass('flostats');
+	$('#live-placeholder').append(stats);
 
-	self.show = function(vals) {
-		plot.setData([vals]);
-
-		// Since the axes don't change, we don't need to call plot.setupGrid()
-
-		plot.draw();
-	};
-	var stats = $('<div>').addClass('flostats'); 
-	place.append(stats);
-	self.onstats = function(liters) {
+	self.onstats = function(stamp, speed, liters) {
 		stats.empty();
 		stats.append(liters.toFixed(2)+' литров');
+		series.append(stamp*1000, speed);
+	}
+	
+	self.start = function() {
+		//smoothie.start();
 	}
 }

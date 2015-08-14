@@ -21,8 +21,15 @@
 	line-height: 1.2em;
 }
 
+#live-placeholder {
+	position: relative;
+	width: 100%;
+	font-size: 14px;
+	line-height: 1.2em;
+}
+
 .flostats {
 	position: absolute;
-	right: 20px;
-	top: 20px;
+	right: 30px;
+	top: -20px;
 }

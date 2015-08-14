@@ -20,6 +20,8 @@ areas = ((2, u"Газон", 80),
 
 ticks2liters=0.003355
 
+default_liters = 100
+
 shed_hour = 4
 shed_minute = 0
 tz = pytz.timezone('US/Pacific')

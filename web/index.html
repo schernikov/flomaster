@@ -5,6 +5,7 @@
         <script type="text/javascript" src="js/jquery.min.js"></script>
         <script type="text/javascript" src="js/bootstrap.min.js"></script>
         <script type="text/javascript" src="js/underscore-min.js"></script>
+        <script type="text/javascript" src="js/smoothie.js"></script>
         <script type="text/javascript" src="js/flot/jquery.flot.min.js"></script>
         <script type="text/javascript" src="js/session.js"></script>
         <script type="text/javascript" src="js/flomaster.js"></script>
@@ -20,7 +21,9 @@
 		</div>
 		<div class="row">
 			<div class="span11 demo-container">
-				<div id="placeholder" class="demo-placeholder"></div>
+				<div id="live-placeholder">
+					<canvas id="liveflow" width="800" height="100"></canvas>
+				</div>
 			</div>
 			<div class="span1 btn-toolbar">
 				<div id="flobtns" class="btn-group-vertical" data-toggle="buttons-checkbox">

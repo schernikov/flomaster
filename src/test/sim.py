@@ -9,7 +9,7 @@ import threading, time
 import configs.server
 
 class RPIOSim(object):
-    sleeping = 0.01
+    sleeping = 0.003
     LOW = True
     HIGH = False
 
@@ -27,6 +27,12 @@ class RPIOSim(object):
         th.start()
     
     def output(self, pin, isLow):
+        print "GPIO: %d %s"%(pin,isLow)
+        #=======================================================================
+        # import traceback
+        # traceback.print_stack()
+        #=======================================================================
+        
         if self._master == pin:
             self._masteron = isLow
         else:
@@ -50,9 +56,12 @@ class RPIOSim(object):
 
     def _process(self, callback):
         while True:
+            print "GPIO: waiting",self._flowing
             self._cond.acquire()
-            self._cond.wait()
+            while not self._flowing:
+                self._cond.wait()
             self._cond.release()
+            print "GPIO: ready",self._flowing
             
             while self._flowing:
                 time.sleep(self.sleeping)

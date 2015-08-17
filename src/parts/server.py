@@ -90,7 +90,16 @@ def main():
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
     parser.add_argument('-n', '--ping', help='url to ping')
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
+    parser.add_argument('-v', '--verbosity', help='verbosity level', 
+                        choices=[parts.misc.logging.ERROR, 
+                                 parts.misc.logging.WARNING, 
+                                 parts.misc.logging.INFO, 
+                                 parts.misc.logging.DEBUG, 
+                                 parts.misc.VERBOSE_NAME], default=parts.misc.logging.INFO)
     args = parser.parse_args()
+
+    print "log level", args.verbosity
+    parts.misc.log_level(getattr(parts.misc.logging, args.verbosity, 'INFO'))
 
     parts.misc.logger.info('listening on %s:%d'%(args.host, args.port))
 
@@ -114,7 +123,7 @@ def main():
     
     app.listen(args.port, address=args.host)
 
-    action.reschedule()
+    action.reschedule(10)
 
     inst.start()
 

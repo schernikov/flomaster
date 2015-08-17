@@ -51,7 +51,7 @@ class RelayControl(object):
             raise Exception("invalid relay switched: %s"%(str(idx)))
         
         nm = self._names.get(idx, None)
-        if nm: parts.misc.logger.info("%s %s" %('starting' if isOn else 'stopping', nm))
+        if nm: parts.misc.logger.verbose("Relay:%s %s" %('starting' if isOn else 'stopping', nm))
 
         RPIO.output(configs.server.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
 
@@ -120,7 +120,7 @@ class SensorControl(object):
                 if polltime:
                     polltime = None
                     diff = stamp-startstamp
-                    act.onstop(stamp, ticks*configs.server.ticks2liters, diff)
+                    act.onstop(stamp, ticks*configs.server.ticks2liters, ticksdiff*configs.server.ticks2liters, diff)
                     ticks = 0
             else:
                 if polltime is None:

@@ -116,7 +116,7 @@ def main():
         now = datetime.datetime.now(configs.server.tz)
         if start_time < now:
             if now.date() == start_time.date():
-                start_time = now + (start_time - datetime.datetime.combine(start_time.date(), datetime.time()))
+                start_time = now + (start_time - start_time.replace(hours=0, seconds=0, microseconds=0))
     else:
         start_time = None
         

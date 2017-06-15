@@ -49,14 +49,14 @@ class LeakInfo(object):
 
 class Pending(object):
     
-    def __init__(self, onstop, area, liters, minutes):
+    def __init__(self, onstop, area, liters, duration):
         self._area = area
         self._liters = 0
         self._maxliters = liters
         self._onstop = onstop
         self._stopped = False
         self._end = None
-        self._duration = datetime.timedelta(minutes=minutes)
+        self._duration = duration
         
     @property
     def name(self):
@@ -79,8 +79,9 @@ class Pending(object):
         self._onstop(self._area)
 
         
-    def reset(self, liters, minutes):
+    def reset(self, liters, duration):
         self._maxliters = liters
+        self._duration = duration
 
         
     def onliters(self, speed, liters, stamp):
@@ -220,9 +221,10 @@ class Action(object):
         if isOn:
             if pend is None:
                 liters = configs.server.default_liters
-                minutes = configs.server.default_minutes
-                parts.misc.logger.info("Setting %s liters (%d minutes) for unscheduled '%s'" % (liters, minutes, area.name))
-                pend = Pending(self._onstop, area, liters, minutes)
+                duration = datetime.timedelta(minutes=configs.server.default_minutes)
+                parts.misc.logger.info("Setting %s liters (%d) for unscheduled '%s'" % (liters, 
+                                                                                        parts.misc.second_to_str(duration.total_seconds()), area.name))
+                pend = Pending(self._onstop, area, liters, duration)
                 self._pending[area] = pend
             
             pend.activate()
@@ -250,14 +252,14 @@ class Action(object):
     def _qwater(self, pends):
         "should always be called from queue context"
 
-        for area, liters, minutes in pends:
+        for area, liters, duration in pends:
             pend = self._pending.get(area, None)
             if pend is not None:
-                parts.misc.logger.info("Area '%s' is already scheduled. Resetting to %s liters (%s minutes)." % (area.name, liters, str(minutes)))
-                pend.reset(liters, minutes)
+                parts.misc.logger.info("Area '%s' is already scheduled. Resetting to %s liters (%s)." % (area.name, liters, parts.misc.second_to_str(duration.total_seconds())))
+                pend.reset(liters, duration)
                 return
                 
-            pend = Pending(self._onstop, area, liters, minutes)
+            pend = Pending(self._onstop, area, liters, duration)
             self._pending[area] = pend
         
         self._startnext()
@@ -322,8 +324,9 @@ class Action(object):
             if area is None:
                 parts.misc.logger.warn("unexpected area index requested: %d" % (idx))
                 return
-            parts.misc.logger.debug("Setting up %s for %.2f liters"%(area.name, liters))
-            pends.append((area, liters, minutes))
+            duration = datetime.timedelta(minutes=minutes)
+            parts.misc.logger.debug("Setting up %s for %.2f liters (%s)"%(area.name, liters, parts.misc.second_to_str(duration.total_seconds())))
+            pends.append((area, liters, duration))
 
         self.water(pends)
         

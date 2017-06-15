@@ -311,7 +311,7 @@ class Action(object):
             
         nxt = now + datetime.timedelta(seconds=seconds)
             
-        parts.misc.logger.info("re-scheduling in %s"%(parts.misc.second_to_str(seconds), nxt.strftime('%Y-%m-%d %H:%M:%S')))
+        parts.misc.logger.info("re-scheduling in %s (%s)"%(parts.misc.second_to_str(seconds), nxt.strftime('%Y-%m-%d %H:%M:%S')))
         self._delay_call(seconds, self._scheduled)
     
         if self._url:

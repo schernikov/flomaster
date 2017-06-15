@@ -302,7 +302,8 @@ class Action(object):
     def schedule(self, start_time, retry):
         seconds, next_time = get_next_time(start_time, retry)
 
-        parts.misc.logger.info("Starting in %s"%(parts.misc.second_to_str(seconds)))
+        parts.misc.logger.info("Starting in %s. Retrying every %s."%(parts.misc.second_to_str(seconds),
+                                                                    parts.misc.second_to_str(retry.total_seconds())))
 
         self._apply_schedule(seconds, next_time, retry)
 

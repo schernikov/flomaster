@@ -154,7 +154,12 @@ def main():
     
         action.schedule(start_time, retry)
     
+        periodic = tornado.ioloop.PeriodicCallback(action.check_expired, configs.server.poll_expired_seconds*1000.0)
+        periodic.start()
+    
         inst.start()
+    except KeyboardInterrupt:
+        print "Exiting..."
     finally:
         parts.misc.logger.info("Cleaning up")
         parts.controller.cleanup()

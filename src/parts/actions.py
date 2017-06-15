@@ -55,6 +55,8 @@ class Pending(object):
         self._maxliters = liters
         self._onstop = onstop
         self._stopped = False
+        self._end = None
+        self._duration = datetime.timedelta(minutes=minutes)
         
     @property
     def name(self):
@@ -63,6 +65,18 @@ class Pending(object):
     @property
     def id(self):
         return self._area.id    
+
+
+    def activate(self):
+        now = datetime.datetime.now(configs.server.tz)
+        self._end = now + self._duration
+
+
+    def check_expired(self, now):
+        if self._stopped or self._end > now: return
+        # it is expired and still going; let's stop it now
+        self._stopped = True
+        self._onstop(self._area)
 
         
     def reset(self, liters, minutes):
@@ -138,14 +152,26 @@ class Action(object):
         self._oncount(diffliters, speed, stamp)
 
 
+    def check_expired(self):
+        now = datetime.datetime.now(configs.server.tz)
+        self._qadd('tick', self._qtick, (now,))
+
+
     def _qadd(self, name, callback, args=[]):
         try:
             self._q.put((callback, args), block=False)
         except:
             parts.misc.logger.error("failed to put %s into queue"%(name, self._q.qsize()))
 
+
+    def _qtick(self, now):
+        "should always be called from queue context; validates active jobs expiration"
+        for pend in self._actives:
+            pend.check_expired(now)
+
                 
-    def _oncount(self, *args): self._qadd('count', self._qcount, args)
+    def _oncount(self, *args): 
+        self._qadd('count', self._qcount, args)
 
 
     def _qcount(self, diffliters, speed, stamp):
@@ -199,6 +225,7 @@ class Action(object):
                 pend = Pending(self._onstop, area, liters, minutes)
                 self._pending[area] = pend
             
+            pend.activate()
             self._actives.add(pend)
             parts.misc.logger.debug("Set: on '%s'" % (area.name))
         else:
@@ -273,9 +300,12 @@ class Action(object):
         while True:
             callback, args = self._q.get()
 
-            callback(*args)
-
-            self._q.task_done()
+            try:
+                callback(*args)
+            except Exception, e:
+                parts.misc.logger.warn("Action processing failure: %s"%(str(e)))
+            finally:
+                self._q.task_done()
 
 
     def _scheduled(self, stamp, retry):

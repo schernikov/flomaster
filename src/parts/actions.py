@@ -49,7 +49,7 @@ class LeakInfo(object):
 
 class Pending(object):
     
-    def __init__(self, onstop, area, liters):
+    def __init__(self, onstop, area, liters, minutes):
         self._area = area
         self._liters = 0
         self._maxliters = liters
@@ -65,7 +65,7 @@ class Pending(object):
         return self._area.id    
 
         
-    def reset(self, liters):
+    def reset(self, liters, minutes):
         self._maxliters = liters
 
         
@@ -222,14 +222,14 @@ class Action(object):
     def _qwater(self, pends):
         "should always be called from queue context"
 
-        for area, liters in pends:
+        for area, liters, minutes in pends:
             pend = self._pending.get(area, None)
             if pend is not None:
-                parts.misc.logger.info("Area '%s' is already scheduled. Resetting liters to %s." % (area.name, liters))
-                pend.reset(liters)
+                parts.misc.logger.info("Area '%s' is already scheduled. Resetting liters to %s (%s minutes)." % (area.name, liters, str(minutes)))
+                pend.reset(liters, minutes)
                 return
                 
-            pend = Pending(self._onstop, area, liters)
+            pend = Pending(self._onstop, area, liters, minutes)
             self._pending[area] = pend
         
         self._startnext()
@@ -279,10 +279,14 @@ class Action(object):
 
     def _scheduled(self):
         #TODO tmp
-        self.reschedule(600)
+        #self.reschedule(600)
+        #tmp
 
         pends = []        
-        for idx, _, liters in configs.server.areas:
+        for a in configs.server.areas:
+            idx = a[0]
+            liters = a[2]
+            minutes = a[3] if len(a) > 3 else None
             if not liters: continue
             
             area = self._areas.get(idx, None)
@@ -290,7 +294,7 @@ class Action(object):
                 parts.misc.logger.warn("unexpected area index requested: %d" % (idx))
                 return
             parts.misc.logger.debug("Setting up %s for %.2f liters"%(area.name, liters))
-            pends.append((area, liters))
+            pends.append((area, liters, minutes))
 
         self.water(pends)
         

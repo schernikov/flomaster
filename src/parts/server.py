@@ -112,6 +112,7 @@ def main():
         except:
             print "Don't know what to do with '%s' start time"%(args.start)
             return
+        if not start_time.tzinfo: start_time = start_time.replace(tzinfo=configs.server.tz)
     else:
         start_time = None
         

@@ -113,6 +113,10 @@ def main():
             print "Don't know what to do with '%s' start time"%(args.start)
             return
         if not start_time.tzinfo: start_time = start_time.replace(tzinfo=configs.server.tz)
+        now = datetime.datetime.now(configs.server.tz)
+        if start_time < now:
+            if now.date() == start_time.date():
+                start_time = now + (start_time - datetime.datetime.combine(start_time.date(), datetime.time()))
     else:
         start_time = None
         

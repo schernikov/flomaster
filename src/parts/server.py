@@ -35,7 +35,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     sessions = None
 
     def open(self):
-        self._client_ip = self.request.remote_ip
+        self._client_ip = self.request.headers.get('Host', None) or self.request.remote_ip
         parts.misc.logger.info("new session from %s"%(self._client_ip))
 
         msg = self.sessions.onsession(self)

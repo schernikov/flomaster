@@ -55,8 +55,10 @@ class Pending(object):
         self._maxliters = liters
         self._onstop = onstop
         self._stopped = False
+        self._start = None
         self._end = None
         self._duration = duration
+        self._span = None
         
     @property
     def name(self):
@@ -69,7 +71,14 @@ class Pending(object):
 
     def activate(self):
         now = datetime.datetime.now(configs.server.tz)
+        self._start = now
         self._end = now + self._duration
+
+
+    def deactivate(self):
+        if not self._start: return
+        now = datetime.datetime.now(configs.server.tz)
+        self._span = now - self._start
 
 
     def check_expired(self, now):
@@ -82,6 +91,20 @@ class Pending(object):
     def reset(self, liters, duration):
         self._maxliters = liters
         self._duration = duration
+
+
+    def get_liters(self):
+        return self._liters
+    
+    
+    def get_duration(self):
+        if not self._start: return datetime.timedelta(seconds=0)
+        
+        if not self._span:
+            now = datetime.datetime.now(configs.server.tz)
+            return now - self._start
+
+        return self._span
 
         
     def onliters(self, speed, liters, stamp):
@@ -229,15 +252,17 @@ class Action(object):
             
             pend.activate()
             self._actives.add(pend)
-            parts.misc.logger.debug("Set: on '%s'" % (area.name))
+            parts.misc.logger.debug("Action: started %s" % (area.name))
         else:
             if pend is None:
                 parts.misc.logger.warn("'%s' was not scheduled" % (area.name))
             else:
                 del self._pending[area]
                 try:
+                    pend.deactivate()
                     self._actives.remove(pend)
-                    parts.misc.logger.debug("Set: Off: '%s'" % (area.name))
+                    parts.misc.logger.debug("Action: stopped: %s %.1f liters %s" % (area.name, pend.get_liters(), 
+                                                                      parts.misc.second_to_str(pend.get_duration().total_seconds())))
                 except:
                     parts.misc.logger.warn("'%s' was not active" % (area.name))
             

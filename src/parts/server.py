@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, json, datetime, dateutil
+import os, uuid, argparse, json, datetime, dateutil.parser
 import tornado.ioloop, tornado.web, tornado.websocket
 
 import configs.client, configs.server

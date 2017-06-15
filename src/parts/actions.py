@@ -84,7 +84,7 @@ class Pending(object):
 class Action(object):
     qdepth = 100
 
-    def __init__(self, delay_call, url, retry):
+    def __init__(self, delay_call, url):
         self._url = url
         self._delay_call = delay_call
         self._q = Queue.Queue(self.qdepth)
@@ -93,7 +93,6 @@ class Action(object):
         self._th.start()
         self._notify = self._dummy
         self._onarea = self._dummy
-        self._td = retry
         
         self._areas = {}
         for area in configs.server.areas:

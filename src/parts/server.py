@@ -130,6 +130,7 @@ def main():
     
         inst.start()
     finally:
+        parts.misc.logger.info("Cleaning up")
         parts.controller.cleanup()
 
     

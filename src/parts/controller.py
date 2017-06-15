@@ -40,6 +40,11 @@ except:
 
     parts.misc.logger.warning('RPIO is not available. Switching to simulated RPIO.')
 
+
+def cleanup():
+    RPIO.cleanup()
+
+
 class RelayControl(object):
     
     def __init__(self):
@@ -80,6 +85,7 @@ class SensorControl(object):
         th = threading.Thread(target=self._loop, name=self.__class__.__name__, args=(action,))
         th.daemon = True
         th.start()
+
 
     def _loop(self, act):
         prevticks = 0

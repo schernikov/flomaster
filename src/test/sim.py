@@ -53,6 +53,10 @@ class RPIOSim(object):
     def input(self, pin):
         return self.LOW # == 'off'
     
+    
+    def cleanup(self):
+        pass
+    
 
     def _process(self, callback):
         while True:

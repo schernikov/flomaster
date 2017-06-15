@@ -109,24 +109,28 @@ def main():
     action = parts.actions.Action(inst.call_later, args.ping)
     relays = parts.controller.RelayControl()
     area = parts.area.AreaControl()
-    sensor = parts.controller.SensorControl(action); sensor
-    sessions = parts.sessions.SessionControl(action, relays, area)
-
-    SocketHandler.sessions = sessions
-
-    app = tornado.web.Application([
-                                   (r'/data', MainHandler),
-                                   (r'/websocket', SocketHandler),
-                                   (r'/(index.html)', tornado.web.StaticFileHandler, {"path": loc}),
-                                   (r'/ui/(.*)$', tornado.web.StaticFileHandler, {"path": os.path.join(loc, 'ui')}),
-                                   (r'/js/(.*)$', JSHandler, {"path": os.path.join(loc, 'js')}),
-                                  ], debug=configs.server.debug, cookie_secret=str(uuid.uuid4()))
+    try:
+        sensor = parts.controller.SensorControl(action)
+        sensor
+        sessions = parts.sessions.SessionControl(action, relays, area)
     
-    app.listen(args.port, address=args.host)
-
-    action.reschedule(10)
-
-    inst.start()
+        SocketHandler.sessions = sessions
+    
+        app = tornado.web.Application([
+                                       (r'/data', MainHandler),
+                                       (r'/websocket', SocketHandler),
+                                       (r'/(index.html)', tornado.web.StaticFileHandler, {"path": loc}),
+                                       (r'/ui/(.*)$', tornado.web.StaticFileHandler, {"path": os.path.join(loc, 'ui')}),
+                                       (r'/js/(.*)$', JSHandler, {"path": os.path.join(loc, 'js')}),
+                                      ], debug=configs.server.debug, cookie_secret=str(uuid.uuid4()))
+        
+        app.listen(args.port, address=args.host)
+    
+        action.reschedule(10)
+    
+        inst.start()
+    finally:
+        parts.controller.cleanup()
 
     
 if __name__ == "__main__":

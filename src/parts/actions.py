@@ -300,16 +300,18 @@ class Action(object):
         
     
     def reschedule(self, override = None):
+        now = datetime.datetime.now(configs.server.tz)
         if override:
             seconds = override
         else:
-            now = datetime.datetime.now(configs.server.tz)
             nxt = now.replace(hour=configs.server.shed_hour, minute=configs.server.shed_minute, second=0, microsecond=0)
             if nxt <= now: nxt += datetime.timedelta(days=1)
             seconds = (nxt-now).total_seconds()
             if seconds > oneday: seconds = oneday
             
-        parts.misc.logger.info("re-scheduling in %s"%(seconds))
+        nxt = now + datetime.timedelta(seconds=seconds)
+            
+        parts.misc.logger.info("re-scheduling in %s"%(parts.misc.second_to_str(seconds), nxt.strftime('%Y-%m-%d %H:%M:%S')))
         self._delay_call(seconds, self._scheduled)
     
         if self._url:
@@ -318,3 +320,4 @@ class Action(object):
                 requests.get(self._url, timeout=1)
             except:
                 parts.misc.logger.warn("failed to report rescheduling to %s"%(self._url))
+

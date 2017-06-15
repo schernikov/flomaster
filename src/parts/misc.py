@@ -59,3 +59,22 @@ class Base(object):
         return hdls
 
 base = Base('/')
+
+
+def second_to_str(seconds):
+    if seconds < 0:
+        return '%s in future'%(second_to_str(-seconds))
+
+    if seconds <= 120:
+        return '%d seconds'%(seconds)
+    
+    minutes = seconds / 60
+    if minutes <= 120:
+        return '%d minutes'%(minutes)
+    
+    hours = minutes / 60
+    if hours <= 48:
+        return '%d hours'%(hours)
+    
+    days = hours / 24
+    return '%d days'%(days)

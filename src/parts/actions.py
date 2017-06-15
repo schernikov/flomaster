@@ -393,7 +393,6 @@ def get_next_time(start_time, retry):
             start_time += retry*count
             if start_time < now: start_time += retry
 
-            parts.misc.logger.info("Missed start time. Rescheduling for %s"%(str(start_time)))
         seconds = (start_time - now).total_seconds()
         next_time = start_time
     else:

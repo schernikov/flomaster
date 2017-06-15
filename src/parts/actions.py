@@ -84,7 +84,7 @@ class Pending(object):
 class Action(object):
     qdepth = 100
 
-    def __init__(self, delay_call, url):
+    def __init__(self, delay_call, url, retry):
         self._url = url
         self._delay_call = delay_call
         self._q = Queue.Queue(self.qdepth)
@@ -93,6 +93,7 @@ class Action(object):
         self._th.start()
         self._notify = self._dummy
         self._onarea = self._dummy
+        self._td = retry
         
         self._areas = {}
         for area in configs.server.areas:
@@ -194,8 +195,9 @@ class Action(object):
         if isOn:
             if pend is None:
                 liters = configs.server.default_liters
-                parts.misc.logger.info("Setting %s for unscheduled '%s'" % (liters, area.name))
-                pend = Pending(self._onstop, area, liters)
+                minutes = configs.server.default_minutes
+                parts.misc.logger.info("Setting %s liters (%d minutes) for unscheduled '%s'" % (liters, minutes, area.name))
+                pend = Pending(self._onstop, area, liters, minutes)
                 self._pending[area] = pend
             
             self._actives.add(pend)
@@ -225,7 +227,7 @@ class Action(object):
         for area, liters, minutes in pends:
             pend = self._pending.get(area, None)
             if pend is not None:
-                parts.misc.logger.info("Area '%s' is already scheduled. Resetting liters to %s (%s minutes)." % (area.name, liters, str(minutes)))
+                parts.misc.logger.info("Area '%s' is already scheduled. Resetting to %s liters (%s minutes)." % (area.name, liters, str(minutes)))
                 pend.reset(liters, minutes)
                 return
                 
@@ -277,10 +279,8 @@ class Action(object):
             self._q.task_done()
 
 
-    def _scheduled(self):
-        #TODO tmp
-        #self.reschedule(600)
-        #tmp
+    def _scheduled(self, stamp, retry):
+        self._reschedule(stamp, retry)
 
         pends = []        
         for a in configs.server.areas:
@@ -299,21 +299,25 @@ class Action(object):
         self.water(pends)
         
     
-    def reschedule(self, override = None):
-        now = datetime.datetime.now(configs.server.tz)
-        if override:
-            seconds = override
-        else:
-            nxt = now.replace(hour=configs.server.shed_hour, minute=configs.server.shed_minute, second=0, microsecond=0)
-            if nxt <= now: nxt += datetime.timedelta(days=1)
-            seconds = (nxt-now).total_seconds()
-            if seconds > oneday: seconds = oneday
-            
-        nxt = now + datetime.timedelta(seconds=seconds)
-            
-        parts.misc.logger.info("re-scheduling in %s (%s)"%(parts.misc.second_to_str(seconds), nxt.strftime('%Y-%m-%d %H:%M:%S')))
-        self._delay_call(seconds, self._scheduled)
+    def schedule(self, start_time, retry):
+        seconds, next_time = get_next_time(start_time, retry)
+
+        parts.misc.logger.info("Starting in %s"%(parts.misc.second_to_str(seconds)))
+
+        self._apply_schedule(seconds, next_time, retry)
+
     
+    def _reschedule(self, stamp, retry):
+        seconds, next_time = get_next_time(stamp, retry)
+            
+        parts.misc.logger.info("re-scheduling in %s (%s)"%(parts.misc.second_to_str(seconds), 
+                                                           next_time.strftime('%Y-%m-%d %H:%M:%S')))
+        self._apply_schedule(seconds, next_time, retry)
+
+
+    def _apply_schedule(self, seconds, next_time, retry):
+        self._delay_call(seconds, lambda : self._scheduled(next_time, retry))
+
         if self._url:
             try:
                 # kick something outside to announce it is alive  
@@ -321,3 +325,21 @@ class Action(object):
             except:
                 parts.misc.logger.warn("failed to report rescheduling to %s"%(self._url))
 
+
+
+def get_next_time(start_time, retry):
+    now = datetime.datetime.now(configs.server.tz)
+    if start_time:
+        if start_time < now:
+            count = int((now - start_time).total_seconds()/retry.total_seconds())
+            start_time += retry*count
+            if start_time < now: start_time += retry
+
+            parts.misc.logger.info("Missed start time. Rescheduling for %s"%(str(start_time)))
+        seconds = (start_time - now).total_seconds()
+        next_time = start_time
+    else:
+        seconds = retry.total_seconds()
+        next_time = now+retry
+        
+    return seconds, next_time

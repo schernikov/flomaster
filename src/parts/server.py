@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, json
+import os, uuid, argparse, json, datetime, dateutil
 import tornado.ioloop, tornado.web, tornado.websocket
 
 import configs.client, configs.server
@@ -86,10 +86,14 @@ class JSHandler(tornado.web.StaticFileHandler):
 
 
 def main():
+    def_retry = datetime.timedelta(hours=24)
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
     parser.add_argument('-n', '--ping', help='url to ping')
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
+    parser.add_argument('--start', help='start time (default: now)')
+    parser.add_argument('--retry', help='seconds to retry (default: %s)'%(parts.misc.second_to_str(def_retry.total_seconds())), 
+                        type=int)
     parser.add_argument('-v', '--verbosity', help='verbosity level', type=int,  
                         choices=[parts.misc.logging.ERROR, 
                                  parts.misc.logging.WARNING, 
@@ -101,6 +105,23 @@ def main():
     verb = parts.misc.logging.getLevelName(args.verbosity)
     print "log level", verb
     parts.misc.log_level(getattr(parts.misc.logging, verb, 'INFO'))
+
+    if args.start:
+        try:
+            start_time = dateutil.parser.parse(args.start)
+        except:
+            print "Don't know what to do with '%s' start time"%(args.start)
+            return
+    else:
+        start_time = None
+        
+    if args.retry:
+        if args.retry <= 0:
+            print "Can not retry in %d seconds"%(args.retry)
+            return
+        retry = datetime.timedelta(seconds=args.retry)
+    else:
+        retry = def_retry
 
     parts.misc.logger.info('listening on %s:%d'%(args.host, args.port))
 
@@ -126,7 +147,7 @@ def main():
         
         app.listen(args.port, address=args.host)
     
-        action.reschedule(10)
+        action.schedule(start_time, retry)
     
         inst.start()
     finally:

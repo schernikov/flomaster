@@ -13,6 +13,7 @@ echo "rising" > /sys/class/gpio/gpio23/edge
 15117 ticks, 97 seconds, 50.7 liters 
 """
 
+import importlib
 import time, threading
 import configs.server
 import parts.misc
@@ -29,7 +30,7 @@ def setup(callback):
         RPIO.setup(pin, RPIO.OUT, initial=RPIO.HIGH)
 
 try:
-    import RPIO
+    RPIO = importlib.import_module("RPIO")
 except:
     configs.server.debug = True
     import test.sim
@@ -51,7 +52,7 @@ class RelayControl(object):
             raise Exception("invalid relay switched: %s"%(str(idx)))
         
         nm = self._names.get(idx, None)
-        if nm: parts.misc.logger.verbose("Relay:%s %s" %('starting' if isOn else 'stopping', nm))
+        parts.misc.logger.debug("Relay:%s %s" %('starting' if isOn else 'stopping', nm if nm else ''))
 
         RPIO.output(configs.server.outpins[idx], RPIO.LOW if isOn else RPIO.HIGH)
 

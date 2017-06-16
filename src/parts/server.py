@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, json, datetime, dateutil.parser
+import os, uuid, argparse, json, datetime, dateutil.parser, json
 import tornado.ioloop, tornado.web, tornado.websocket
 
 import configs.client, configs.server
@@ -86,11 +86,15 @@ class JSHandler(tornado.web.StaticFileHandler):
 
 
 def main():
+    def_conf = os.path.normpath(os.path.join(os.path.dirname(__file__), '../configs/config.json'))
     def_retry = datetime.timedelta(hours=24)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
     parser.add_argument('-n', '--ping', help='url to ping')
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
+    parser.add_argument('--config', help='JSON file with pin configuration and area definitions. Default %(default)s', 
+                        default=def_conf)
     parser.add_argument('--start', help='start time (default: now)')
     parser.add_argument('--retry', help='seconds to retry (default: %s)'%(parts.misc.second_to_str(def_retry.total_seconds())), 
                         type=int)
@@ -105,6 +109,12 @@ def main():
     verb = parts.misc.logging.getLevelName(args.verbosity)
     print "log level", verb
     parts.misc.log_level(getattr(parts.misc.logging, verb, 'INFO'))
+
+    try:
+        load_config(configs.server, args.config)
+    except Exception, e:
+        print str(e)
+        return
 
     if args.start:
         try:
@@ -163,6 +173,19 @@ def main():
     finally:
         parts.misc.logger.info("Cleaning up")
         parts.controller.cleanup()
+
+
+def load_config(mod, fname):
+    if not os.path.isfile(fname):
+        raise Exception('%s is not a file'%(fname))
+    
+    try:
+        conf = json.load(fname)
+    except Exception, e:
+        raise Exception('%s is not valid JSON file: %s'%(fname, str(e)))
+    
+    for nm, val in conf.items():
+        setattr(mod, nm, val)
 
     
 if __name__ == "__main__":

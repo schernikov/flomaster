@@ -87,7 +87,6 @@ class JSHandler(tornado.web.StaticFileHandler):
 
 def main():
     def_conf = os.path.normpath(os.path.join(os.path.dirname(__file__), '../configs/config.json'))
-    def_retry = datetime.timedelta(hours=24)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', help='tornado listen port', required=True, type=int)
@@ -115,9 +114,7 @@ def main():
 
     conf_start = getattr(configs.server, 'start', None)
     if conf_start:
-        start_time = dateparser.parse(conf_start, settings={'PREFER_DATES_FROM': 'future',
-                                                            'RETURN_AS_TIMEZONE_AWARE': True,
-                                                            'TO_TIMEZONE':configs.server.tz.zone})
+        start_time = get_time(conf_start)
         if not start_time:
             print "Don't know what to do with '%s' start time"%(conf_start)
             return
@@ -125,18 +122,14 @@ def main():
         start_time = None
         
     conf_retry = getattr(configs.server, 'retry', None)
-    if conf_retry:
-        now = dateparser.parse('now', settings={'PREFER_DATES_FROM': 'future', 'RETURN_AS_TIMEZONE_AWARE': True})
-        retry_time = dateparser.parse(conf_retry, settings={'PREFER_DATES_FROM': 'future',
-                                                            'RETURN_AS_TIMEZONE_AWARE': True,
-                                                            'RELATIVE_BASE':now})
-        if not retry_time:
-            print "Don't know what to do with '%s' retry time"%(conf_retry)
-            return
+    if not conf_retry:
+        print "Config must have 'retry' time value"
+        return
 
-        retry = retry_time - now        
-    else:
-        retry = def_retry
+    retry = get_time(conf_retry, delta=True)
+    if not retry:
+        print "Don't know what to do with '%s' retry time"%(conf_retry)
+        return
 
     parts.misc.logger.info('listening on %s:%d'%(args.host, args.port))
 
@@ -173,6 +166,23 @@ def main():
     finally:
         parts.misc.logger.info("Cleaning up")
         parts.controller.cleanup()
+
+
+def get_time(time_str, delta=False):
+    now = dateparser.parse('now', settings={'PREFER_DATES_FROM': 'future', 'RETURN_AS_TIMEZONE_AWARE': True})
+    stamp = dateparser.parse(time_str, settings={'PREFER_DATES_FROM': 'future',
+                                                      'RETURN_AS_TIMEZONE_AWARE': True,
+                                                      'RELATIVE_BASE':now})
+    if not stamp: return None
+
+    if stamp < now:
+        td = now - stamp
+        if delta: return td
+        return now + td
+    
+    if delta: return stamp - now
+
+    return stamp
 
 
 def load_config(mod, fname):

@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, json, datetime, dateutil.parser, json
+import os, uuid, argparse, datetime, dateutil.parser, json, dateparser
 import tornado.ioloop, tornado.web, tornado.websocket
 
 import configs.client, configs.server
@@ -95,7 +95,6 @@ def main():
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
     parser.add_argument('--config', help='JSON file with pin configuration and area definitions. Default %(default)s', 
                         default=def_conf)
-    parser.add_argument('--start', help='start time (default: now)')
     parser.add_argument('--retry', help='seconds to retry (default: %s)'%(parts.misc.second_to_str(def_retry.total_seconds())), 
                         type=int)
     parser.add_argument('-v', '--verbosity', help='verbosity level', type=int,  
@@ -116,25 +115,28 @@ def main():
         print str(e)
         return
 
-    if args.start:
-        try:
-            start_time = dateutil.parser.parse(args.start)
-        except:
-            print "Don't know what to do with '%s' start time"%(args.start)
+    conf_start = getattr(configs.server, 'start', None)
+    if conf_start:
+        start_time = dateparser.parse(conf_start, settings={'PREFER_DATES_FROM': 'future',
+                                                            'RETURN_AS_TIMEZONE_AWARE': True,
+                                                            'TO_TIMEZONE':configs.server.tz.zone})
+        if not start_time:
+            print "Don't know what to do with '%s' start time"%(conf_start)
             return
-        if not start_time.tzinfo: start_time = start_time.replace(tzinfo=configs.server.tz)
-        now = datetime.datetime.now(configs.server.tz)
-        if start_time < now:
-            if now.date() == start_time.date():
-                start_time = now + (start_time - start_time.replace(hour=0, second=0, microsecond=0))
     else:
         start_time = None
         
-    if args.retry:
-        if args.retry <= 0:
-            print "Can not retry in %d seconds"%(args.retry)
+    conf_retry = getattr(configs.server, 'retry', None)
+    if conf_retry:
+        now = dateparser.parse('now', settings={'PREFER_DATES_FROM': 'future', 'RETURN_AS_TIMEZONE_AWARE': True})
+        retry_time = dateparser.parse(conf_retry, settings={'PREFER_DATES_FROM': 'future',
+                                                            'RETURN_AS_TIMEZONE_AWARE': True,
+                                                            'RELATIVE_BASE':now})
+        if not retry_time:
+            print "Don't know what to do with '%s' retry time"%(conf_retry)
             return
-        retry = datetime.timedelta(seconds=args.retry)
+
+        retry = retry_time - now        
     else:
         retry = def_retry
 

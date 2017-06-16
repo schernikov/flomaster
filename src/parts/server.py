@@ -178,11 +178,12 @@ def main():
 def load_config(mod, fname):
     if not os.path.isfile(fname):
         raise Exception('%s is not a file'%(fname))
-    
-    try:
-        conf = json.load(fname)
-    except Exception, e:
-        raise Exception('%s is not valid JSON file: %s'%(fname, str(e)))
+
+    with open(fname) as f:    
+        try:
+            conf = json.load(f)
+        except Exception, e:
+            raise Exception('%s is not valid JSON file: %s'%(fname, str(e)))
     
     for nm, val in conf.items():
         setattr(mod, nm, val)

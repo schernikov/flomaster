@@ -7,7 +7,7 @@ Created on Oct 9, 2013
 @author: schernikov
 '''
 
-import os, uuid, argparse, datetime, dateutil.parser, json, dateparser
+import os, uuid, argparse, datetime, json, dateparser
 import tornado.ioloop, tornado.web, tornado.websocket
 
 import configs.client, configs.server
@@ -95,8 +95,6 @@ def main():
     parser.add_argument('-s', '--host', help='tornado host address (default: %(default)s)', default='localhost')
     parser.add_argument('--config', help='JSON file with pin configuration and area definitions. Default %(default)s', 
                         default=def_conf)
-    parser.add_argument('--retry', help='seconds to retry (default: %s)'%(parts.misc.second_to_str(def_retry.total_seconds())), 
-                        type=int)
     parser.add_argument('-v', '--verbosity', help='verbosity level', type=int,  
                         choices=[parts.misc.logging.ERROR, 
                                  parts.misc.logging.WARNING, 

@@ -245,7 +245,7 @@ class Action(object):
             if pend is None:
                 liters = configs.server.default_liters
                 duration = datetime.timedelta(minutes=configs.server.default_minutes)
-                parts.misc.logger.info("Setting %s liters (%d) for unscheduled '%s'" % (liters, 
+                parts.misc.logger.info("Setting %s liters (%s) for unscheduled '%s'" % (liters, 
                                                                                         parts.misc.second_to_str(duration.total_seconds()), area.name))
                 pend = Pending(self._onstop, area, liters, duration)
                 self._pending[area] = pend

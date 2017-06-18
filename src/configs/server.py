@@ -13,6 +13,9 @@ ticks2liters=0.003355
 default_liters = 100
 default_minutes = 5
 
+areas = []
+master = None
+
 poll_expired_seconds = 10
 
 tz = pytz.timezone('US/Pacific')
